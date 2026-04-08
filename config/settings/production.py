@@ -16,6 +16,13 @@ CORS_ALLOWED_ORIGINS = [
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# CSRF & Security (Consistent with Dispatcher project)
+CSRF_TRUSTED_ORIGINS = [
+    'https://jr-sacoloes-front-production.up.railway.app',
+    'https://jr-sacoloes-api-production.up.railway.app'
+]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Security headers (Guide #5)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
