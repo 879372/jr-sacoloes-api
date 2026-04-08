@@ -1,5 +1,4 @@
 from django.db import migrations, models
-import django.utils.timezone
 
 class Migration(migrations.Migration):
 
@@ -8,5 +7,14 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # created_at and updated_at already in 0001_initial
+        migrations.AddField(
+            model_name='itemnotacompra',
+            name='is_deleted',
+            field=models.BooleanField(default=False),
+        ),
+        migrations.AddField(
+            model_name='notacompra',
+            name='is_deleted',
+            field=models.BooleanField(default=False),
+        ),
     ]

@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import NotaCompra, ItemNotaCompra
-
-
 from apps.produtos.serializers import ProdutoSimplificadoSerializer
 
 class ItemNotaCompraSerializer(serializers.ModelSerializer):
@@ -20,14 +18,23 @@ class ItemNotaCompraReadSerializer(ItemNotaCompraSerializer):
 
 
 class NotaCompraSerializer(serializers.ModelSerializer):
-    """Serializer para escrita de nota de compra"""
+    """Serializer para escrita de nota de compra, suportando itens aninhados"""
+    itens = ItemNotaCompraSerializer(many=True, required=False)
+
     class Meta:
         model = NotaCompra
         fields = [
             'id', 'numero_nf', 'fornecedor', 'cnpj_fornecedor', 
             'data_emissao', 'data_entrada', 'valor_total', 
-            'status', 'xml_nfe', 'chave_acesso', 'observacoes'
+            'status', 'xml_nfe', 'chave_acesso', 'observacoes', 'itens'
         ]
+
+    def create(self, validated_data):
+        itens_data = validated_data.pop('itens', [])
+        nota = NotaCompra.objects.create(**validated_data)
+        for item_data in itens_data:
+            ItemNotaCompra.objects.create(nota=nota, **item_data)
+        return nota
 
 
 class NotaCompraReadSerializer(NotaCompraSerializer):

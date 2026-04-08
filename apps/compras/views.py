@@ -46,26 +46,26 @@ class NotaCompraViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'Nota recebida e estoque atualizado.'})
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['post'])
     def sincronizar(self, request):
-        """Lista as notas fiscais emitidas para o CNPJ da empresa"""
+        """Dispara a sincronização de notas recebidas via MDe"""
         service = ManifestoService()
         try:
-            notas = service.listar_notas_recebidas()
-            return Response(notas)
+            result = service.sincronizar_notas()
+            return Response(result)
         except Exception as e:
             return Response({'erro': str(e)}, status=400)
 
-    @action(detail=False, methods=['post'], url_path='importar-chave')
-    def importar_chave(self, request):
-        """Importa uma nota fiscal pela chave de acesso"""
-        chave = request.data.get('chave')
-        if not chave:
-            return Response({'erro': 'Chave de acesso não informada.'}, status=400)
+    @action(detail=False, methods=['post'], url_path='importar-mde')
+    def importar_mde(self, request):
+        """Importa uma nota fiscal previamente sincronizada pelo ID da NFeRecebida"""
+        nfe_id = request.data.get('nfe_recebida_id')
+        if not nfe_id:
+            return Response({'erro': 'ID da nota recebida não informado.'}, status=400)
             
         service = ManifestoService()
         try:
-            nota = service.importar_nfe_por_chave(chave)
-            return Response(NotaCompraReadSerializer(nota).data, status=201)
+            nota = service.importar_para_compras(nfe_id)
+            return Response(NotaCompraReadSerializer(nota).data, status= status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'erro': str(e)}, status=400)
