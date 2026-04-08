@@ -8,6 +8,11 @@ ALLOWED_HOSTS = ['*']  # Permitir domínios do Railway
 # WhiteNoise for Static Files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
+CORS_ALLOWED_ORIGINS = [
+    'https://jr-sacoloes-front-production.up.railway.app',
+    'http://localhost:5173',
+]
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
