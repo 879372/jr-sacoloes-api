@@ -1,0 +1,266 @@
+from django.db import models, transaction
+from django.db.models import Q
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from .models import SessaoCaixa, Venda, VendaItem, VendaPagamento, OperacaoCaixa
+from .serializers import (
+    SessaoCaixaSerializer, 
+    VendaSerializer, 
+    VendaReadSerializer,
+    VendaItemSerializer, 
+    VendaPagamentoSerializer,
+    OperacaoCaixaSerializer,
+    VendaFinalizarSerializer
+)
+from apps.fiscal.focus_nfe import FocusNFeClient
+from apps.fiscal.mappers import venda_to_focus_nfe
+
+
+@extend_schema(tags=['Caixa'])
+class SessaoCaixaViewSet(viewsets.ModelViewSet):
+    queryset = SessaoCaixa.objects.all().select_related('operador')
+    serializer_class = SessaoCaixaSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(operador=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path='ativa')
+    def sessao_ativa(self, request):
+        """Retorna a sessão de caixa aberta do usuário atual, se houver."""
+        sessao = SessaoCaixa.objects.filter(operador=request.user, status='ABERTA').last()
+        if sessao:
+            return Response(SessaoCaixaSerializer(sessao).data)
+        return Response(None)
+
+    @action(detail=True, methods=['post'], url_path='fechar')
+    def fechar(self, request, pk=None):
+        """Fecha a sessão de caixa e retorna o resumo financeiro."""
+        from django.utils import timezone
+        sessao = self.get_object()
+        
+        if sessao.status == 'FECHADA':
+            return Response({'erro': 'Este caixa já está fechado.'}, status=400)
+            
+        # Calcula resumo
+        vendas = Venda.objects.filter(sessao=sessao, status='FINALIZADA')
+        pagamentos = VendaPagamento.objects.filter(venda__in=vendas)
+        
+        resumo = {
+            'total_vendas': sum(v.total for v in vendas),
+            'quantidade_vendas': vendas.count(),
+            'por_forma': {}
+        }
+        
+        for forma, label in VendaPagamento.FORMA_CHOICES:
+            total_forma = sum(p.valor for p in pagamentos if p.forma == forma)
+            resumo['por_forma'][forma] = total_forma
+
+        sessao.status = 'FECHADA'
+        sessao.data_fechamento = timezone.now()
+        sessao.save()
+        
+        return Response({
+            'sessao': SessaoCaixaSerializer(sessao).data,
+            'resumo': resumo
+        })
+
+    @action(detail=True, methods=['post'], url_path='sangria')
+    def sangria(self, request, pk=None):
+        sessao = self.get_object()
+        if sessao.status == 'FECHADA':
+            return Response({'erro': 'Caixa fechado.'}, status=400)
+        
+        valor = request.data.get('valor')
+        motivo = request.data.get('motivo', '')
+        
+        if not valor or float(valor) <= 0:
+            return Response({'erro': 'Valor inválido.'}, status=400)
+            
+        op = OperacaoCaixa.objects.create(
+            sessao=sessao, tipo='SANGRIA', valor=valor, motivo=motivo
+        )
+        return Response(OperacaoCaixaSerializer(op).data, status=201)
+
+    @action(detail=True, methods=['post'], url_path='suprimento')
+    def suprimento(self, request, pk=None):
+        sessao = self.get_object()
+        if sessao.status == 'FECHADA':
+            return Response({'erro': 'Caixa fechado.'}, status=400)
+            
+        valor = request.data.get('valor')
+        motivo = request.data.get('motivo', '')
+        
+        if not valor or float(valor) <= 0:
+            return Response({'erro': 'Valor inválido.'}, status=400)
+            
+        op = OperacaoCaixa.objects.create(
+            sessao=sessao, tipo='SUPRIMENTO', valor=valor, motivo=motivo
+        )
+        return Response(OperacaoCaixaSerializer(op).data, status=201)
+
+
+@extend_schema(tags=['Vendas'])
+class VendaViewSet(viewsets.ModelViewSet):
+    queryset = Venda.objects.all().select_related(
+        'cliente', 'sessao', 'sessao__operador'
+    ).prefetch_related(
+        'itens__produto', 'pagamentos'
+    )
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['data', 'total', 'status']
+
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve', 'finalizar', 'cancelar']:
+            return VendaReadSerializer
+        return VendaSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        sessao = self.request.query_params.get('sessao')
+        status = self.request.query_params.get('status')
+        if sessao:
+            queryset = queryset.filter(sessao_id=sessao)
+        if status:
+            queryset = queryset.filter(status=status)
+        return queryset
+
+    @extend_schema(
+        summary="Finalizar uma venda",
+        description="Fecha a venda, registra os pagamentos, baixa o estoque e opcionalmente emite nota fiscal.",
+        request=VendaFinalizarSerializer,
+        responses={200: VendaReadSerializer}
+    )
+    @action(detail=True, methods=['post'], url_path='finalizar')
+    def finalizar(self, request, pk=None):
+        # ... (Logica de finalização mantida igual, apenas retornando o serializer correto)
+        venda = self.get_object()
+
+        if venda.status != 'EM_ABERTO':
+            return Response({'erro': 'Apenas vendas em aberto podem ser finalizadas.'}, status=400)
+
+        pagamentos_data = request.data.get('pagamentos', [])
+        if not pagamentos_data:
+            return Response({'erro': 'Informe ao menos uma forma de pagamento.'}, status=400)
+
+        from decimal import Decimal
+        total_pago = sum(Decimal(str(p.get('valor', 0))) for p in pagamentos_data)
+        
+        if total_pago < venda.total - Decimal('0.05'):
+             return Response({
+                 'erro': f'O total dos pagamentos (R${total_pago:.2f}) não atinge o total da venda (R${venda.total:.2f}).'
+             }, status=400)
+
+        troco = total_pago - venda.total
+        if troco > Decimal('0.05'):
+            pagamento_dinheiro = next((p for p in pagamentos_data if str(p.get('forma', '')).strip().upper() == 'DINHEIRO'), None)
+            if not pagamento_dinheiro:
+                formas_enviadas = [p.get('forma') for p in pagamentos_data]
+                return Response({
+                    'erro': f'Pagamento maior que o total suportado apenas para DINHEIRO (Troco). Formas enviadas: {formas_enviadas}'
+                }, status=400)
+            
+            valor_em_dinheiro = Decimal(str(pagamento_dinheiro.get('valor', 0)))
+            if troco > valor_em_dinheiro + Decimal('0.05'):
+                 return Response({
+                    'erro': 'O troco é maior do que o valor pago em dinheiro, o que é inválido.'
+                 }, status=400)
+            
+            # Abate o troco no pagamento em dinheiro para que o banco de dados armazene apenas o valor real recebido
+            pagamento_dinheiro['valor'] = float(valor_em_dinheiro - troco)
+        try:
+            with transaction.atomic():
+                itens = venda.itens.select_related('produto').all()
+                if not itens:
+                    raise ValueError('O carrinho está vazio.')
+
+                from apps.produtos.services import registrar_movimentacao
+                
+                for item in itens:
+                    registrar_movimentacao(
+                        produto_id=item.produto_id,
+                        quantidade=item.quantidade,
+                        tipo='SAIDA',
+                        motivo='VENDA',
+                        loja=venda.sessao.operador.username or 'Matriz',
+                        observacoes=f'Venda #{venda.id}'
+                    )
+
+                for p in pagamentos_data:
+                    VendaPagamento.objects.create(venda=venda, forma=p['forma'], valor=p['valor'])
+
+                venda.status = 'FINALIZADA'
+                venda.nf_emitida = request.data.get('emitir_fiscal', False)
+                venda.save()
+
+        except Exception as e:
+            return Response({'erro': str(e)}, status=400)
+
+        return Response(VendaReadSerializer(venda).data)
+
+    @action(detail=True, methods=['post'], url_path='emitir-nfce')
+    def emitir_nfce(self, request, pk=None):
+        """Prepara e envia os dados da venda para a Focus NFe via NFCeService"""
+        from apps.fiscal.services.nfce_service import NFCeService
+        venda = self.get_object()
+        
+        if venda.status != 'FINALIZADA':
+            return Response({'erro': 'Apenas vendas FINALIZADAS podem emitir nota fiscal.'}, status=400)
+            
+        try:
+            service = NFCeService()
+            nfce = service.emitir_from_venda(venda.id)
+            
+            # Retorna formato compatível com o que o PDV.tsx espera
+            return Response({
+                'status': 'sucesso' if nfce.foi_autorizada else 'error',
+                'mensagem': nfce.mensagem_sefaz,
+                'url_pdf': nfce.caminho_danfe, # PDV.tsx usa url_pdf
+                'chave': nfce.chave_nfe,
+                'numero': nfce.numero
+            })
+            
+        except Exception as e:
+            return Response({'erro': f'Erro na emissão: {str(e)}'}, status=500)
+
+    @action(detail=True, methods=['post'], url_path='cancelar')
+    def cancelar(self, request, pk=None):
+        venda = self.get_object()
+        if venda.status == 'CANCELADA':
+            return Response({'erro': 'Esta venda já está cancelada.'}, status=400)
+            
+        try:
+            with transaction.atomic():
+                if venda.status == 'FINALIZADA':
+                    from apps.produtos.services import registrar_movimentacao
+                    for item in venda.itens.all():
+                        registrar_movimentacao(
+                            produto_id=item.produto_id,
+                            quantidade=item.quantidade,
+                            tipo='ENTRADA',
+                            motivo='DEVOLUCAO',
+                            loja=venda.sessao.operador.username or 'Matriz',
+                            observacoes=f'Estorno Venda #{venda.id} (Cancelamento)'
+                        )
+
+                venda.status = 'CANCELADA'
+                venda.save()
+        except Exception as e:
+            return Response({'erro': str(e)}, status=400)
+
+        return Response(VendaReadSerializer(venda).data)
+
+
+class VendaItemViewSet(viewsets.ModelViewSet):
+    queryset = VendaItem.objects.all().select_related('produto')
+    serializer_class = VendaItemSerializer
+
+
+class VendaPagamentoViewSet(viewsets.ModelViewSet):
+    queryset = VendaPagamento.objects.all()
+    serializer_class = VendaPagamentoSerializer
+
+class OperacaoCaixaViewSet(viewsets.ModelViewSet):
+    queryset = OperacaoCaixa.objects.all()
+    serializer_class = OperacaoCaixaSerializer
