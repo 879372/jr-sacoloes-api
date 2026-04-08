@@ -57,3 +57,4 @@ sqlparse==0.5.5
 structlog==25.5.0
 uritemplate==4.2.0
 urllib3==2.6.3
+whitenoise==6.9.0

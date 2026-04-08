@@ -3,6 +3,13 @@ from .base import *
 # PRODUCTION SPECIFIC SETTINGS
 
 DEBUG = False
+ALLOWED_HOSTS = ['*']  # Permitir domínios do Railway
+
+# WhiteNoise for Static Files
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Security headers (Guide #5)
 SECURE_BROWSER_XSS_FILTER = True
