@@ -39,7 +39,6 @@ class VendaSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'sessao', 'cliente', 'data',
             'total', 'desconto', 'status', 'observacoes',
-            'nf_emitida', 'nf_numero',
         ]
 
 
