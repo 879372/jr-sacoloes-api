@@ -17,11 +17,6 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-voly$60j^1r&882g76hvs
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
 
-# Focus NFe
-FOCUSNFE_TOKEN = config("FOCUSNFE_TOKEN", default="seu_token_aqui")
-FOCUSNFE_BASE_URL = config("FOCUSNFE_BASE_URL", default="https://homologacao.focusnfe.com.br")
-FOCUSNFE_CNPJ_EMITENTE = config("FOCUSNFE_CNPJ_EMITENTE", default="00000000000000")
-
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -41,7 +36,6 @@ INSTALLED_APPS = [
     'apps.vendas',
     'apps.financeiro',
     'apps.compras',
-    'apps.fiscal',
     'drf_spectacular',
 ]
 

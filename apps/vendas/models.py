@@ -37,8 +37,6 @@ class Venda(BaseModel):
     desconto = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='EM_ABERTO')
     observacoes = models.TextField(blank=True)
-    nf_emitida = models.BooleanField(default=False)
-    nf_numero = models.CharField(max_length=20, blank=True, null=True)
 
     objects = ActiveManager()
     all_objects = models.Manager()

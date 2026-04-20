@@ -5,7 +5,6 @@ from django.db import transaction
 from .models import NotaCompra
 from .serializers import NotaCompraSerializer, NotaCompraReadSerializer
 from apps.produtos.services import registrar_movimentacao
-from apps.fiscal.services.manifesto_service import ManifestoService
 
 
 class NotaCompraViewSet(viewsets.ModelViewSet):
@@ -46,26 +45,3 @@ class NotaCompraViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'Nota recebida e estoque atualizado.'})
 
-    @action(detail=False, methods=['post'])
-    def sincronizar(self, request):
-        """Dispara a sincronização de notas recebidas via MDe"""
-        service = ManifestoService()
-        try:
-            result = service.sincronizar_notas()
-            return Response(result)
-        except Exception as e:
-            return Response({'erro': str(e)}, status=400)
-
-    @action(detail=False, methods=['post'], url_path='importar-mde')
-    def importar_mde(self, request):
-        """Importa uma nota fiscal previamente sincronizada pelo ID da NFeRecebida"""
-        nfe_id = request.data.get('nfe_recebida_id')
-        if not nfe_id:
-            return Response({'erro': 'ID da nota recebida não informado.'}, status=400)
-            
-        service = ManifestoService()
-        try:
-            nota = service.importar_para_compras(nfe_id)
-            return Response(NotaCompraReadSerializer(nota).data, status= status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'erro': str(e)}, status=400)

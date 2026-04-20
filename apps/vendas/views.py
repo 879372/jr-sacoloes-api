@@ -14,8 +14,6 @@ from .serializers import (
     OperacaoCaixaSerializer,
     VendaFinalizarSerializer
 )
-from apps.fiscal.focus_nfe import FocusNFeClient
-from apps.fiscal.mappers import venda_to_focus_nfe
 
 
 @extend_schema(tags=['Caixa'])
@@ -199,30 +197,6 @@ class VendaViewSet(viewsets.ModelViewSet):
 
         return Response(VendaReadSerializer(venda).data)
 
-    @action(detail=True, methods=['post'], url_path='emitir-nfce')
-    def emitir_nfce(self, request, pk=None):
-        """Prepara e envia os dados da venda para a Focus NFe via NFCeService"""
-        from apps.fiscal.services.nfce_service import NFCeService
-        venda = self.get_object()
-        
-        if venda.status != 'FINALIZADA':
-            return Response({'erro': 'Apenas vendas FINALIZADAS podem emitir nota fiscal.'}, status=400)
-            
-        try:
-            service = NFCeService()
-            nfce = service.emitir_from_venda(venda.id)
-            
-            # Retorna formato compatível com o que o PDV.tsx espera
-            return Response({
-                'status': 'sucesso' if nfce.foi_autorizada else 'error',
-                'mensagem': nfce.mensagem_sefaz,
-                'url_pdf': nfce.caminho_danfe, # PDV.tsx usa url_pdf
-                'chave': nfce.chave_nfe,
-                'numero': nfce.numero
-            })
-            
-        except Exception as e:
-            return Response({'erro': f'Erro na emissão: {str(e)}'}, status=500)
 
     @action(detail=True, methods=['post'], url_path='cancelar')
     def cancelar(self, request, pk=None):
