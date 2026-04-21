@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import Produto, EstoqueLoja, MovimentacaoEstoque
+from .models import Produto, EstoqueLoja, MovimentacaoEstoque, Grupo
+
+
+class GrupoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Grupo
+        fields = ['id', 'nome', 'descricao', 'ativo']
+        read_only_fields = ['id']
 
 
 class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):

@@ -2,12 +2,20 @@ from django.db.models import Q
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Produto
+from .models import Produto, Grupo
 from .serializers import (
     ProdutoSerializer, 
     ProdutoReadSerializer, 
-    ProdutoSimplificadoSerializer
+    ProdutoSimplificadoSerializer,
+    GrupoSerializer
 )
+
+
+class GrupoViewSet(viewsets.ModelViewSet):
+    queryset = Grupo.objects.all()
+    serializer_class = GrupoSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['nome']
 
 
 class ProdutoViewSet(viewsets.ModelViewSet):

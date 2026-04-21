@@ -15,7 +15,8 @@ class ContaPagarSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'descricao', 'fornecedor', 'categoria', 
             'valor', 'vencimento', 'data_pagamento', 
-            'status', 'observacoes'
+            'status', 'observacoes', 'recorrente', 
+            'data_fim_recorrencia', 'parcela_atual'
         ]
 
 
@@ -34,7 +35,8 @@ class ContaReceberSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'descricao', 'cliente_nome', 'categoria', 
             'valor', 'vencimento', 'data_recebimento', 
-            'status', 'observacoes'
+            'status', 'observacoes', 'recorrente', 
+            'data_fim_recorrencia', 'parcela_atual'
         ]
 
 

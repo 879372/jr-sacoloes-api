@@ -13,6 +13,21 @@ class NotaCompraViewSet(viewsets.ModelViewSet):
     search_fields = ['numero_nf', 'fornecedor', 'cnpj_fornecedor']
     ordering_fields = ['data_entrada', 'valor_total']
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        status = self.request.query_params.get('status')
+        data_inicio = self.request.query_params.get('data_inicio')
+        data_fim = self.request.query_params.get('data_fim')
+
+        if status:
+            queryset = queryset.filter(status=status)
+        if data_inicio:
+            queryset = queryset.filter(data_entrada__gte=data_inicio)
+        if data_fim:
+            queryset = queryset.filter(data_entrada__lte=data_fim)
+            
+        return queryset.order_by('-data_entrada')
+
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
             return NotaCompraReadSerializer

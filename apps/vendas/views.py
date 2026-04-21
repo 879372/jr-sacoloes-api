@@ -41,6 +41,11 @@ class SessaoCaixaViewSet(viewsets.ModelViewSet):
         if sessao.status == 'FECHADA':
             return Response({'erro': 'Este caixa já está fechado.'}, status=400)
             
+        # Impede fechar se houver vendas em aberto
+        vendas_abertas = Venda.objects.filter(sessao=sessao, status='EM_ABERTO').exists()
+        if vendas_abertas:
+            return Response({'erro': 'Não é possível fechar o caixa com vendas em aberto. Finalize ou cancele as vendas pendentes.'}, status=400)
+            
         # Calcula resumo
         vendas = Venda.objects.filter(sessao=sessao, status='FINALIZADA')
         pagamentos = VendaPagamento.objects.filter(venda__in=vendas)
@@ -118,11 +123,19 @@ class VendaViewSet(viewsets.ModelViewSet):
         queryset = super().get_queryset()
         sessao = self.request.query_params.get('sessao')
         status = self.request.query_params.get('status')
+        data_inicio = self.request.query_params.get('data_inicio')
+        data_fim = self.request.query_params.get('data_fim')
+
         if sessao:
             queryset = queryset.filter(sessao_id=sessao)
         if status:
             queryset = queryset.filter(status=status)
-        return queryset
+        if data_inicio:
+            queryset = queryset.filter(data__date__gte=data_inicio)
+        if data_fim:
+            queryset = queryset.filter(data__date__lte=data_fim)
+        
+        return queryset.order_by('-data')
 
     @extend_schema(
         summary="Finalizar uma venda",
@@ -139,6 +152,8 @@ class VendaViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Apenas vendas em aberto podem ser finalizadas.'}, status=400)
 
         pagamentos_data = request.data.get('pagamentos', [])
+        cliente_id = request.data.get('cliente')
+        
         if not pagamentos_data:
             return Response({'erro': 'Informe ao menos uma forma de pagamento.'}, status=400)
 
@@ -187,9 +202,37 @@ class VendaViewSet(viewsets.ModelViewSet):
 
                 for p in pagamentos_data:
                     VendaPagamento.objects.create(venda=venda, forma=p['forma'], valor=p['valor'])
+                    
+                    # Se for FIADO, gera Conta a Receber
+                    if str(p['forma']).strip().upper() == 'FIADO':
+                        from apps.financeiro.models import ContaReceber
+                        from django.utils import timezone
+                        from datetime import timedelta
+                        
+                        nome_cliente = "Consumidor Final"
+                        if cliente_id:
+                            from apps.clientes.models import Cliente
+                            try:
+                                cli = Cliente.objects.get(id=cliente_id)
+                                nome_cliente = cli.nome
+                            except:
+                                pass
+                        elif venda.cliente:
+                            nome_cliente = venda.cliente.nome
+
+                        ContaReceber.objects.create(
+                            descricao=f"Venda FIADO #{venda.id}",
+                            cliente_nome=nome_cliente,
+                            valor=p['valor'],
+                            vencimento=timezone.now().date() + timedelta(days=30), # Padrão 30 dias
+                            status='PENDENTE',
+                            observacoes=f'Originada da Venda #{venda.id} no PDV.'
+                        )
 
                 venda.status = 'FINALIZADA'
                 venda.nf_emitida = request.data.get('emitir_fiscal', False)
+                if cliente_id:
+                    venda.cliente_id = cliente_id
                 venda.save()
 
         except Exception as e:

@@ -26,6 +26,12 @@ class ContaPagar(BaseModel):
     data_pagamento = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     observacoes = models.TextField(blank=True)
+    
+    # Recorrência
+    recorrente = models.BooleanField(default=False)
+    data_fim_recorrencia = models.DateField(null=True, blank=True)
+    proxima_recorrencia = models.DateField(null=True, blank=True, help_text="Usado internamente para controle")
+    parcela_atual = models.IntegerField(default=1)
 
     objects = ActiveManager()
     all_objects = models.Manager()
@@ -47,6 +53,12 @@ class ContaReceber(BaseModel):
     data_recebimento = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     observacoes = models.TextField(blank=True)
+
+    # Recorrência
+    recorrente = models.BooleanField(default=False)
+    data_fim_recorrencia = models.DateField(null=True, blank=True)
+    proxima_recorrencia = models.DateField(null=True, blank=True, help_text="Usado internamente para controle")
+    parcela_atual = models.IntegerField(default=1)
 
     objects = ActiveManager()
     all_objects = models.Manager()

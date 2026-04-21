@@ -1,6 +1,23 @@
 from django.db import models
 from apps.core.models import BaseModel, ActiveManager
 
+class Grupo(BaseModel):
+    nome = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+
+    objects = ActiveManager()
+    all_objects = models.Manager()
+
+    class Meta:
+        app_label = 'produtos'
+        verbose_name = 'Grupo'
+        verbose_name_plural = 'Grupos'
+        ordering = ['nome']
+
+    def __str__(self):
+        return self.nome
+
 class Produto(BaseModel):
     codigo_legado = models.IntegerField(unique=True, null=True, blank=True, help_text="Código da Mercadoria no sistema legado")
     nome = models.CharField(max_length=255)
@@ -27,6 +44,16 @@ class Produto(BaseModel):
 
     class Meta:
         app_label = 'produtos'
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_legado:
+            # Pegar o maior código legado e somar 1
+            last_product = Produto.all_objects.order_by('-codigo_legado').first()
+            if last_product and last_product.codigo_legado:
+                self.codigo_legado = last_product.codigo_legado + 1
+            else:
+                self.codigo_legado = 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.codigo_legado} - {self.nome}"

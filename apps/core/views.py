@@ -48,12 +48,33 @@ def dashboard_stats(request):
     vendas_mes = Venda.objects.filter(status='FINALIZADA', created_at__date__gte=start_of_month)
     faturamento_mes = vendas_mes.aggregate(total=Sum('total'))['total'] or 0
     
-    # 2. Estoque e Rupturas
-    # Itens com menos de 5 unidades/kg
-    criticos = EstoqueLoja.objects.filter(quantidade__lte=5).select_related('produto')
-    total_criticos = criticos.count()
+    # 2. Compras do Mês (Entradas via NF)
+    from apps.compras.models import NotaCompra
+    compras_mes = NotaCompra.objects.filter(
+        status='RECEBIDA', 
+        data_entrada__gte=start_of_month
+    ).aggregate(total=Sum('valor_total'))['total'] or 0
     
-    # 3. Gráfico de 7 dias
+    # 3. Lucro por Categoria (Top 5)
+    from apps.vendas.models import VendaItem
+    from django.db.models import F
+    
+    lucro_categorias = VendaItem.objects.filter(
+        venda__status='FINALIZADA',
+        venda__created_at__date__gte=start_of_month
+    ).values('produto__grupo').annotate(
+        lucro=Sum((F('preco_unitario') - F('produto__preco_compra')) * F('quantidade'))
+    ).order_by('-lucro')
+
+    lucro_ranking = [
+        {
+            "name": item['produto__grupo'] or "Geral", 
+            "total": float(item['lucro'] or 0)
+        } 
+        for item in lucro_categorias
+    ]
+
+    # 4. Gráfico de 7 dias
     grafico_vendas = []
     for i in range(6, -1, -1):
         dia = today - timedelta(days=i)
@@ -67,10 +88,7 @@ def dashboard_stats(request):
         "faturamento_hoje": float(faturamento_hoje),
         "total_vendas_hoje": total_vendas_hoje,
         "faturamento_mes": float(faturamento_mes),
-        "itens_criticos": total_criticos,
+        "compras_mes": float(compras_mes),
         "grafico_vendas": grafico_vendas,
-        "produtos_ruptura": [
-            {"id": c.produto.id, "nome": c.produto.nome, "qtd": float(c.quantidade)}
-            for c in criticos[:5] # Apenas os 5 mais urgentes
-        ]
+        "lucro_por_categoria": lucro_ranking
     })
