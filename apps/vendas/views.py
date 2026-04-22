@@ -334,6 +334,7 @@ class VendaViewSet(viewsets.ModelViewSet):
                 venda.nf_url_pdf = data.get('url_consulta') or data.get('caminho_danfe')
                 venda.nf_status = 'AUTORIZADA'
                 venda.nf_mensagem = data.get('mensagem_sefaz')
+                venda.nf_emitida = True
                 venda.save()
                 return data
             else:
