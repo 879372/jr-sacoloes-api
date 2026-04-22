@@ -3,6 +3,8 @@ from django.db.models import Q
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import requests
+from decouple import config
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models import SessaoCaixa, Venda, VendaItem, VendaPagamento, OperacaoCaixa
 from .serializers import (
@@ -267,6 +269,86 @@ class VendaViewSet(viewsets.ModelViewSet):
             return Response({'erro': str(e)}, status=400)
 
         return Response(VendaReadSerializer(venda).data)
+
+    @action(detail=True, methods=['post'], url_path='emitir-nfce')
+    def emitir_nfce(self, request, pk=None):
+        venda = self.get_object()
+        
+        if venda.status != 'FINALIZADA':
+            return Response({'erro': 'Apenas vendas FINALIZADAS podem emitir nota fiscal.'}, status=400)
+
+        # Monta Payload para o Gateway Fiscal
+        itens_fiscal = []
+        for item in venda.itens.all():
+            itens_fiscal.append({
+                "codigo": str(item.produto.id),
+                "descricao": item.produto.nome,
+                "ncm": "00000000", # TODO: Pegar do modelo se existir
+                "cfop": "5102",
+                "unidade": item.produto.unidade_medida or "UN",
+                "quantidade": float(item.quantidade),
+                "valor_unitario": float(item.preco_unitario),
+                "valor_total": float(item.subtotal),
+                "cst_icms": "00"
+            })
+
+        pagamentos = []
+        for p in venda.pagamentos.all():
+            # Mapeamento de formas para padrão SEFAZ
+            forma_map = {
+                'DINHEIRO': '01',
+                'CARTAO_CREDITO': '03',
+                'CARTAO_DEBITO': '04',
+                'PIX': '17',
+                'FIADO': '99'
+            }
+            pagamentos.append({
+                "forma": forma_map.get(p.forma, '99'),
+                "valor": float(p.valor)
+            })
+
+        payload = {
+            "cnpj_emitente": config('EMPRESA_CNPJ', default='00000000000000'),
+            "itens": itens_fiscal,
+            "total": float(venda.total),
+            "pagamento": pagamentos,
+            "ambiente": "homologacao" # TODO: Mudar para 'producao' em prod
+        }
+
+        # Chamada ao Gateway Fiscal
+        fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/nfce/emitir/"
+        fiscal_key = config('FISCAL_API_KEY')
+
+        try:
+            resp = requests.post(
+                fiscal_url, 
+                json=payload, 
+                headers={'X-Api-Key': fiscal_key},
+                timeout=30
+            )
+            
+            if resp.status_code == 201:
+                data = resp.json()
+                venda.nf_emitida = True
+                venda.nf_chave = data.get('chave_acesso')
+                venda.nf_numero = data.get('numero')
+                venda.nf_url_pdf = data.get('url_consulta') # Ou url_pdf se disponível
+                venda.nf_status = 'AUTORIZADA'
+                venda.save()
+                return Response(data)
+            else:
+                try:
+                    error_data = resp.json()
+                    msg = error_data.get('detail') or error_data.get('mensagem') or 'Erro desconhecido na API Fiscal'
+                except:
+                    msg = f"Erro na API Fiscal (Status {resp.status_code})"
+                
+                venda.nf_status = 'ERRO'
+                venda.save()
+                return Response({'erro': msg}, status=400)
+
+        except requests.exceptions.RequestException as e:
+            return Response({'erro': f'Falha ao conectar com o gateway fiscal: {str(e)}'}, status=500)
 
 
 class VendaItemViewSet(viewsets.ModelViewSet):
