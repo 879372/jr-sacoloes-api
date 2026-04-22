@@ -128,6 +128,9 @@ class VendaViewSet(viewsets.ModelViewSet):
         data_inicio = self.request.query_params.get('data_inicio')
         data_fim = self.request.query_params.get('data_fim')
 
+        nf_emitida = self.request.query_params.get('nf_emitida')
+        nf_tipo = self.request.query_params.get('nf_tipo')
+
         if sessao:
             queryset = queryset.filter(sessao_id=sessao)
         if status:
@@ -136,6 +139,11 @@ class VendaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(data__date__gte=data_inicio)
         if data_fim:
             queryset = queryset.filter(data__date__lte=data_fim)
+        
+        if nf_emitida:
+            queryset = queryset.filter(nf_emitida=nf_emitida.lower() == 'true')
+        if nf_tipo:
+            queryset = queryset.filter(nf_tipo=nf_tipo.lower())
         
         return queryset.order_by('-data')
 
@@ -237,20 +245,121 @@ class VendaViewSet(viewsets.ModelViewSet):
                     venda.cliente_id = cliente_id
                 venda.save()
 
+                # Se solicitou emissão fiscal, tenta emitir AGORA dentro da transação
+                if venda.nf_emitida:
+                    self._executar_emissao_fiscal_venda(venda)
+
         except Exception as e:
-            return Response({'erro': str(e)}, status=400)
+            # Captura erros amigáveis (como os da SEFAZ) e retorna 400
+            msg = str(e)
+            if "Erro na API Fiscal" in msg or "SEFAZ" in msg:
+                return Response({'erro': msg}, status=400)
+            return Response({'erro': f'Erro ao finalizar: {msg}'}, status=400)
 
         return Response(VendaReadSerializer(venda).data)
 
+    def _executar_emissao_fiscal_venda(self, venda, tipo=None):
+        """
+        Método interno para realizar a chamada ao Gateway Fiscal.
+        Lança exceção em caso de erro para permitir rollback da transação de finalização.
+        """
+        modelo_doc = tipo or venda.nf_tipo or 'nfce'
+        
+        # Monta Payload para o Gateway Fiscal
+        itens_fiscal = []
+        for item in venda.itens.select_related('produto').all():
+            itens_fiscal.append({
+                "codigo": item.produto.codigo_barras or str(item.produto.id),
+                "descricao": (item.produto.nome or "PRODUTO")[:200],
+                "ncm": (item.produto.ncm or "00000000").replace('.', '').strip(),
+                "cfop": item.produto.cfop_padrao or ("5102" if modelo_doc == 'nfce' else "5102"),      
+                "unidade": (item.produto.unidade_medida or "UN")[:6],
+                "quantidade": float(item.quantidade),
+                "valor_unitario": float(item.preco_unitario),
+                "valor_total": float(item.subtotal),
+                "cst_icms": "00"
+            })
+
+        pagamentos = []
+        for p in venda.pagamentos.all():
+            forma_map = {
+                'DINHEIRO': '01',
+                'CARTAO_CREDITO': '03',
+                'CARTAO_DEBITO': '04',
+                'PIX': '17',
+                'FIADO': '99'
+            }
+            pagamentos.append({
+                "forma": forma_map.get(str(p.forma).upper(), '99'),
+                "valor": float(p.valor)
+            })
+
+        payload = {
+            "cnpj_emitente": config('EMPRESA_CNPJ', default='00000000000000'),
+            "itens": itens_fiscal,
+            "total": float(venda.total),
+            "pagamento": pagamentos,
+            "ambiente": "homologacao", # TODO: Mudar para 'producao' em prod
+            "presenca": "1" # Presencial
+        }
+
+        if venda.cliente:
+            payload["destinatario"] = {
+                "cpf": venda.cliente.cpf_cnpj.replace('.', '').replace('-', '').replace('/', '') if venda.cliente.cpf_cnpj else None,
+                "nome": venda.cliente.nome
+            }
+
+        # Seleciona endpoint conforme o tipo
+        endpoint = "nfe" if modelo_doc == 'nfe' else "nfce"
+        fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/{endpoint}/emitir/"
+        fiscal_key = config('FISCAL_API_KEY')
+
+        try:
+            resp = requests.post(
+                fiscal_url, 
+                json=payload, 
+                headers={'X-Api-Key': fiscal_key},
+                timeout=30
+            )
+            
+            if resp.status_code in [200, 201]:
+                data = resp.json()
+                venda.nf_tipo = modelo_doc
+                venda.nf_id_fiscal = data.get('id')
+                venda.nf_chave = data.get('chave_acesso')
+                venda.nf_numero = data.get('numero')
+                venda.nf_serie = data.get('serie')
+                venda.nf_protocolo = data.get('protocolo')
+                venda.nf_qr_code = data.get('qr_code')
+                venda.nf_url_pdf = data.get('url_consulta') or data.get('caminho_danfe')
+                venda.nf_status = 'AUTORIZADA'
+                venda.nf_mensagem = data.get('mensagem_sefaz')
+                venda.save()
+                return data
+            else:
+                try:
+                    error_data = resp.json()
+                    msg = error_data.get('detail') or error_data.get('mensagem') or 'Erro desconhecido'
+                except:
+                    msg = f"HTTP {resp.status_code}"
+                
+                venda.nf_status = 'ERRO'
+                venda.save()
+                raise ValueError(f"Erro na API Fiscal: {msg}")
+
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Falha ao conectar com o gateway fiscal: {str(e)}")
+
     @action(detail=True, methods=['post'], url_path='cancelar')
     def cancelar(self, request, pk=None):
+        # ... (Mantido igual)
         venda = self.get_object()
         if venda.status == 'CANCELADA':
             return Response({'erro': 'Esta venda já está cancelada.'}, status=400)
             
-        # Cancelamento Fiscal (se houver nota autorizada)
         if venda.nf_emitida and venda.nf_status == 'AUTORIZADA' and venda.nf_chave:
-            fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/nfce/{venda.nf_chave}/cancelar/"
+            endpoint = "nfe" if venda.nf_tipo == 'nfe' else "nfce"
+            fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/{endpoint}/{venda.nf_chave}/cancelar/"
             fiscal_key = config('FISCAL_API_KEY')
             justificativa = request.data.get('justificativa', 'Venda cancelada por desistencia do cliente ou erro de digitacao')
             
@@ -299,96 +408,16 @@ class VendaViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='emitir-nfce')
     def emitir_nfce(self, request, pk=None):
         venda = self.get_object()
+        tipo = request.data.get('tipo') # Permite forçar 'nfe' ou 'nfce'
         
         if venda.status != 'FINALIZADA':
             return Response({'erro': 'Apenas vendas FINALIZADAS podem emitir nota fiscal.'}, status=400)
-
-        # Monta Payload para o Gateway Fiscal
-        itens_fiscal = []
-        for item in venda.itens.all():
-            itens_fiscal.append({
-                "codigo": item.produto.codigo_barras or str(item.produto.id),
-                "descricao": item.produto.nome[:200],
-                "ncm": (item.produto.ncm or "00000000").replace('.', '').strip(),
-                "cfop": item.produto.cfop_padrao or "5102",      
-                "unidade": (item.produto.unidade_medida or "UN")[:6],
-                "quantidade": float(item.quantidade),
-                "valor_unitario": float(item.preco_unitario),
-                "valor_total": float(item.subtotal),
-                "cst_icms": "00"
-            })
-
-        pagamentos = []
-        for p in venda.pagamentos.all():
-            # Mapeamento de formas para padrão SEFAZ
-            forma_map = {
-                'DINHEIRO': '01',
-                'CARTAO_CREDITO': '03',
-                'CARTAO_DEBITO': '04',
-                'PIX': '17',
-                'FIADO': '99'
-            }
-            pagamentos.append({
-                "forma": forma_map.get(p.forma, '99'),
-                "valor": float(p.valor)
-            })
-
-        payload = {
-            "cnpj_emitente": config('EMPRESA_CNPJ', default='00000000000000'),
-            "itens": itens_fiscal,
-            "total": float(venda.total),
-            "pagamento": pagamentos,
-            "ambiente": "homologacao", # TODO: Mudar para 'producao' em prod
-            "presenca": "1" # Presencial
-        }
-
-        # Identificação do Cliente (Destinatário)
-        if venda.cliente:
-            payload["destinatario"] = {
-                "cpf": venda.cliente.cpf_cnpj.replace('.', '').replace('-', '').replace('/', '') if venda.cliente.cpf_cnpj else None,
-                "nome": venda.cliente.nome
-            }
-
-        # Chamada ao Gateway Fiscal
-        fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/nfce/emitir/"
-        fiscal_key = config('FISCAL_API_KEY')
-
+        
         try:
-            resp = requests.post(
-                fiscal_url, 
-                json=payload, 
-                headers={'X-Api-Key': fiscal_key},
-                timeout=30
-            )
-            
-            if resp.status_code == 201:
-                data = resp.json()
-                venda.nf_emitida = True
-                venda.nf_id_fiscal = data.get('id')
-                venda.nf_chave = data.get('chave_acesso')
-                venda.nf_numero = data.get('numero')
-                venda.nf_serie = data.get('serie')
-                venda.nf_protocolo = data.get('protocolo')
-                venda.nf_qr_code = data.get('qr_code')
-                venda.nf_url_pdf = data.get('url_consulta')
-                venda.nf_status = 'AUTORIZADA'
-                venda.nf_mensagem = data.get('mensagem_sefaz')
-                venda.save()
-                return Response(data)
-            else:
-                try:
-                    error_data = resp.json()
-                    msg = error_data.get('detail') or error_data.get('mensagem') or 'Erro desconhecido na API Fiscal'
-                except:
-                    msg = f"Erro na API Fiscal (Status {resp.status_code})"
-                
-                venda.nf_status = 'ERRO'
-                venda.save()
-                return Response({'erro': msg}, status=400)
-
-        except requests.exceptions.RequestException as e:
-            return Response({'erro': f'Falha ao conectar com o gateway fiscal: {str(e)}'}, status=500)
-
+            data = self._executar_emissao_fiscal_venda(venda, tipo=tipo)
+            return Response(data)
+        except ValueError as e:
+            return Response({'erro': str(e)}, status=400)
 
 class VendaItemViewSet(viewsets.ModelViewSet):
     queryset = VendaItem.objects.all().select_related('produto')

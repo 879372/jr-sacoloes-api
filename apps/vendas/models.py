@@ -49,6 +49,12 @@ class Venda(BaseModel):
     nf_url_pdf = models.URLField(max_length=500, blank=True, null=True)
     nf_status = models.CharField(max_length=20, blank=True, null=True) # PENDENTE, AUTORIZADA, REJEITADA
     nf_mensagem = models.TextField(blank=True, null=True, help_text="Mensagem de retorno da SEFAZ")
+    nf_tipo = models.CharField(
+        max_length=5, 
+        choices=[('nfce', 'NFC-e'), ('nfe', 'NF-e')], 
+        default='nfce',
+        help_text="Modelo do documento (65 ou 55)"
+    )
 
     objects = ActiveManager()
     all_objects = models.Manager()

@@ -108,3 +108,123 @@ Bad Request: /api/vendas/60/emitir-nfce/
 [22/Apr/2026 15:50:02] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 8762
 Unauthorized: /api/vendas/
 [22/Apr/2026 15:52:58] "GET /api/vendas/ HTTP/1.1" 401 166
+[22/Apr/2026 16:17:10] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 8762
+[22/Apr/2026 16:35:02] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 8762
+[22/Apr/2026 16:38:32] "OPTIONS /api/dashboard-stats/ HTTP/1.1" 200 0
+[22/Apr/2026 16:38:34] "GET /api/dashboard-stats/ HTTP/1.1" 200 380
+[22/Apr/2026 16:38:35] "GET /api/clientes/ HTTP/1.1" 200 13130
+[22/Apr/2026 16:38:35] "GET /api/sessoes-caixa/ativa/ HTTP/1.1" 200 377
+[22/Apr/2026 16:38:35] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 52
+[22/Apr/2026 16:38:37] "OPTIONS /api/produtos/?search=&page=1 HTTP/1.1" 200 0
+/Users/josekaio/Documents/JRSACOLOES/backend/venv/lib/python3.14/site-packages/rest_framework/pagination.py:198: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'apps.produtos.models.Produto'> QuerySet.
+  paginator = self.django_paginator_class(queryset, page_size)
+[22/Apr/2026 16:38:37] "GET /api/produtos/?search=&page=1 HTTP/1.1" 200 25165
+[22/Apr/2026 16:38:38] "OPTIONS /api/grupos/?search=&page=1 HTTP/1.1" 200 0
+[22/Apr/2026 16:38:38] "GET /api/grupos/?search=&page=1 HTTP/1.1" 200 1237
+[22/Apr/2026 16:38:58] "OPTIONS /api/clientes/?search=&page=1 HTTP/1.1" 200 0
+[22/Apr/2026 16:38:59] "GET /api/clientes/?search=&page=1 HTTP/1.1" 200 13130
+[22/Apr/2026 16:39:12] "OPTIONS /api/vendas/?status=FINALIZADA HTTP/1.1" 200 0
+[22/Apr/2026 16:39:13] "GET /api/vendas/?status=FINALIZADA HTTP/1.1" 200 11926
+[22/Apr/2026 16:39:15] "GET /api/dashboard-stats/ HTTP/1.1" 200 380
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 15:41:06
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/models.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 16:40:18
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 16:45:06
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 16:45:25
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+[22/Apr/2026 16:46:51] "OPTIONS /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 0
+[22/Apr/2026 16:46:52] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+[22/Apr/2026 16:46:52] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+[22/Apr/2026 16:47:29] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+/Users/josekaio/Documents/JRSACOLOES/backend/venv/lib/python3.14/site-packages/rest_framework/pagination.py:198: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'apps.clientes.models.Cliente'> QuerySet.
+  paginator = self.django_paginator_class(queryset, page_size)
+[22/Apr/2026 16:49:49] "GET /api/clientes/ HTTP/1.1" 200 13130
+[22/Apr/2026 16:49:49] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+[22/Apr/2026 16:49:49] "GET /api/sessoes-caixa/ativa/ HTTP/1.1" 200 377
+[22/Apr/2026 16:49:50] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 52
+[22/Apr/2026 16:49:50] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+[22/Apr/2026 16:50:02] "OPTIONS /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 0
+[22/Apr/2026 16:50:02] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:50:24] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+[22/Apr/2026 16:50:24] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:50:38] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8762
+Unauthorized: /api/vendas/
+[22/Apr/2026 16:51:14] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe HTTP/1.1" 401 111
+[22/Apr/2026 16:51:17] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 8762
+[22/Apr/2026 16:51:31] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 16:45:45
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+[22/Apr/2026 16:52:06] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:52:15] "GET /api/dashboard-stats/ HTTP/1.1" 200 380
+[22/Apr/2026 16:52:18] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:53:21] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:53:22] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:53:28] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:53:29] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:54:49] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:54:49] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:54:49] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:54:50] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:54:51] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:54:51] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:55:42] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:55:43] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:58:39] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:58:40] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:58:40] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:58:40] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:58:42] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
+[22/Apr/2026 16:58:43] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfe&data_inicio=&data_fim= HTTP/1.1" 200 52
+[22/Apr/2026 16:58:43] "GET /api/vendas/?nf_emitida=true&nf_tipo=nfce&data_inicio=&data_fim= HTTP/1.1" 200 8932
