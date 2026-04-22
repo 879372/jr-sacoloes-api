@@ -307,11 +307,11 @@ class VendaViewSet(viewsets.ModelViewSet):
         itens_fiscal = []
         for item in venda.itens.all():
             itens_fiscal.append({
-                "codigo": str(item.produto.id),
-                "descricao": item.produto.nome,
-                "ncm": "00000000", # TODO: Pegar do modelo se existir
-                "cfop": "5102",
-                "unidade": item.produto.unidade_medida or "UN",
+                "codigo": item.produto.codigo_barras or str(item.produto.id),
+                "descricao": item.produto.nome[:200],
+                "ncm": (item.produto.ncm or "00000000").replace('.', '').strip(),
+                "cfop": item.produto.cfop_padrao or "5102",      
+                "unidade": (item.produto.unidade_medida or "UN")[:6],
                 "quantidade": float(item.quantidade),
                 "valor_unitario": float(item.preco_unitario),
                 "valor_total": float(item.subtotal),
