@@ -364,11 +364,15 @@ class VendaViewSet(viewsets.ModelViewSet):
             if resp.status_code == 201:
                 data = resp.json()
                 venda.nf_emitida = True
+                venda.nf_id_fiscal = data.get('id')
                 venda.nf_chave = data.get('chave_acesso')
                 venda.nf_numero = data.get('numero')
                 venda.nf_serie = data.get('serie')
-                venda.nf_url_pdf = data.get('url_consulta') # Ou url_pdf se disponível
+                venda.nf_protocolo = data.get('protocolo')
+                venda.nf_qr_code = data.get('qr_code')
+                venda.nf_url_pdf = data.get('url_consulta')
                 venda.nf_status = 'AUTORIZADA'
+                venda.nf_mensagem = data.get('mensagem_sefaz')
                 venda.save()
                 return Response(data)
             else:

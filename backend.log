@@ -1,0 +1,81 @@
+Watching for file changes with StatReloader
+[22/Apr/2026 15:30:33] "OPTIONS /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 0
+[22/Apr/2026 15:30:34] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 6366
+[22/Apr/2026 15:30:54] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 6366
+[22/Apr/2026 15:31:41] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 6366
+[22/Apr/2026 15:31:43] "OPTIONS /api/vendas/51/emitir-nfce/ HTTP/1.1" 200 0
+Bad Request: /api/vendas/51/emitir-nfce/
+[22/Apr/2026 15:31:46] "POST /api/vendas/51/emitir-nfce/ HTTP/1.1" 400 42
+Bad Request: /api/vendas/51/emitir-nfce/
+[22/Apr/2026 15:34:24] "POST /api/vendas/51/emitir-nfce/ HTTP/1.1" 400 42
+[22/Apr/2026 15:37:12] "POST /api/vendas/51/emitir-nfce/ HTTP/1.1" 200 872
+[22/Apr/2026 15:37:13] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 6411
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/models.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 15:30:12
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/serializers.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 15:40:30
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+/Users/josekaio/Documents/JRSACOLOES/backend/apps/vendas/views.py changed, reloading.
+Performing system checks...
+
+System check identified no issues (0 silenced).
+April 22, 2026 - 15:41:00
+Django version 5.2.12, using settings 'config.settings.base'
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CONTROL-C.
+
+WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+For more information on production servers see: https://docs.djangoproject.com/en/5.2/howto/deployment/
+Watching for file changes with StatReloader
+[22/Apr/2026 15:41:46] "OPTIONS /api/auth/login/ HTTP/1.1" 200 0
+Unauthorized: /api/auth/login/
+[22/Apr/2026 15:41:47] "POST /api/auth/login/ HTTP/1.1" 401 88
+[22/Apr/2026 15:41:47] "OPTIONS /api/auth/refresh/ HTTP/1.1" 200 0
+[22/Apr/2026 15:41:47] "POST /api/auth/refresh/ HTTP/1.1" 200 489
+Unauthorized: /api/auth/login/
+[22/Apr/2026 15:41:47] "POST /api/auth/login/ HTTP/1.1" 401 88
+[22/Apr/2026 15:41:53] "OPTIONS /api/clientes/ HTTP/1.1" 200 0
+[22/Apr/2026 15:41:53] "OPTIONS /api/sessoes-caixa/ativa/ HTTP/1.1" 200 0
+/Users/josekaio/Documents/JRSACOLOES/backend/venv/lib/python3.14/site-packages/rest_framework/pagination.py:198: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'apps.clientes.models.Cliente'> QuerySet.
+  paginator = self.django_paginator_class(queryset, page_size)
+[22/Apr/2026 15:41:53] "GET /api/clientes/ HTTP/1.1" 200 13130
+[22/Apr/2026 15:41:55] "GET /api/sessoes-caixa/ativa/ HTTP/1.1" 200 377
+[22/Apr/2026 15:41:55] "OPTIONS /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 0
+[22/Apr/2026 15:41:56] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 52
+[22/Apr/2026 15:42:09] "OPTIONS /api/produtos/busca-pdv/?q=C HTTP/1.1" 200 0
+[22/Apr/2026 15:42:09] "OPTIONS /api/produtos/busca-pdv/?q=CO HTTP/1.1" 200 0
+[22/Apr/2026 15:42:09] "OPTIONS /api/produtos/busca-pdv/?q=COP HTTP/1.1" 200 0
+[22/Apr/2026 15:42:09] "OPTIONS /api/produtos/busca-pdv/?q=COPO HTTP/1.1" 200 0
+[22/Apr/2026 15:42:09] "GET /api/produtos/busca-pdv/?q=C HTTP/1.1" 200 3104
+[22/Apr/2026 15:42:09] "GET /api/produtos/busca-pdv/?q=CO HTTP/1.1" 200 3059
+[22/Apr/2026 15:42:10] "GET /api/produtos/busca-pdv/?q=COP HTTP/1.1" 200 3075
+[22/Apr/2026 15:42:10] "GET /api/produtos/busca-pdv/?q=COPO HTTP/1.1" 200 3075
+[22/Apr/2026 15:42:19] "GET /api/produtos/busca-pdv/?q=COP HTTP/1.1" 200 3075
+[22/Apr/2026 15:42:19] "GET /api/produtos/busca-pdv/?q=CO HTTP/1.1" 200 3059
+[22/Apr/2026 15:42:19] "GET /api/produtos/busca-pdv/?q=C HTTP/1.1" 200 3104
+[22/Apr/2026 15:42:40] "OPTIONS /api/vendas/ HTTP/1.1" 200 0
+[22/Apr/2026 15:42:40] "POST /api/vendas/ HTTP/1.1" 201 329
+[22/Apr/2026 15:42:40] "OPTIONS /api/venda-itens/ HTTP/1.1" 200 0
+[22/Apr/2026 15:42:40] "POST /api/venda-itens/ HTTP/1.1" 201 99
+[22/Apr/2026 15:42:40] "OPTIONS /api/vendas/59/ HTTP/1.1" 200 0
+[22/Apr/2026 15:42:41] "PATCH /api/vendas/59/ HTTP/1.1" 200 329
+[22/Apr/2026 15:42:42] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 825
