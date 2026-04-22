@@ -242,13 +242,39 @@ class VendaViewSet(viewsets.ModelViewSet):
 
         return Response(VendaReadSerializer(venda).data)
 
-
     @action(detail=True, methods=['post'], url_path='cancelar')
     def cancelar(self, request, pk=None):
         venda = self.get_object()
         if venda.status == 'CANCELADA':
             return Response({'erro': 'Esta venda já está cancelada.'}, status=400)
             
+        # Cancelamento Fiscal (se houver nota autorizada)
+        if venda.nf_emitida and venda.nf_status == 'AUTORIZADA' and venda.nf_chave:
+            fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/nfce/{venda.nf_chave}/cancelar/"
+            fiscal_key = config('FISCAL_API_KEY')
+            justificativa = request.data.get('justificativa', 'Venda cancelada por desistencia do cliente ou erro de digitacao')
+            
+            if len(justificativa) < 15:
+                return Response({'erro': 'A justificativa de cancelamento fiscal deve ter pelo menos 15 caracteres.'}, status=400)
+
+            try:
+                resp = requests.post(
+                    fiscal_url, 
+                    json={"justificativa": justificativa}, 
+                    headers={'X-Api-Key': fiscal_key},
+                    timeout=30
+                )
+                if resp.status_code == 200:
+                    venda.nf_status = 'CANCELADA'
+                else:
+                    try:
+                        err_msg = resp.json().get('mensagem') or resp.json().get('detail')
+                    except:
+                        err_msg = f"Erro SEFAZ (Status {resp.status_code})"
+                    return Response({'erro': f'Erro ao cancelar nota na SEFAZ: {err_msg}'}, status=400)
+            except Exception as e:
+                return Response({'erro': f'Falha ao conectar com gateway fiscal para cancelamento: {str(e)}'}, status=500)
+
         try:
             with transaction.atomic():
                 if venda.status == 'FINALIZADA':
@@ -312,8 +338,16 @@ class VendaViewSet(viewsets.ModelViewSet):
             "itens": itens_fiscal,
             "total": float(venda.total),
             "pagamento": pagamentos,
-            "ambiente": "homologacao" # TODO: Mudar para 'producao' em prod
+            "ambiente": "homologacao", # TODO: Mudar para 'producao' em prod
+            "presenca": "1" # Presencial
         }
+
+        # Identificação do Cliente (Destinatário)
+        if venda.cliente:
+            payload["destinatario"] = {
+                "cpf": venda.cliente.cpf_cnpj.replace('.', '').replace('-', '').replace('/', '') if venda.cliente.cpf_cnpj else None,
+                "nome": venda.cliente.nome
+            }
 
         # Chamada ao Gateway Fiscal
         fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/nfce/emitir/"
@@ -332,6 +366,7 @@ class VendaViewSet(viewsets.ModelViewSet):
                 venda.nf_emitida = True
                 venda.nf_chave = data.get('chave_acesso')
                 venda.nf_numero = data.get('numero')
+                venda.nf_serie = data.get('serie')
                 venda.nf_url_pdf = data.get('url_consulta') # Ou url_pdf se disponível
                 venda.nf_status = 'AUTORIZADA'
                 venda.save()

@@ -42,6 +42,7 @@ class Venda(BaseModel):
     nf_emitida = models.BooleanField(default=False)
     nf_chave = models.CharField(max_length=44, blank=True, null=True)
     nf_numero = models.CharField(max_length=20, blank=True, null=True)
+    nf_serie = models.CharField(max_length=5, blank=True, null=True)
     nf_recibo = models.CharField(max_length=50, blank=True, null=True)
     nf_url_pdf = models.URLField(max_length=500, blank=True, null=True)
     nf_status = models.CharField(max_length=20, blank=True, null=True) # PENDENTE, AUTORIZADA, REJEITADA
