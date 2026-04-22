@@ -79,3 +79,32 @@ Unauthorized: /api/auth/login/
 [22/Apr/2026 15:42:40] "OPTIONS /api/vendas/59/ HTTP/1.1" 200 0
 [22/Apr/2026 15:42:41] "PATCH /api/vendas/59/ HTTP/1.1" 200 329
 [22/Apr/2026 15:42:42] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 825
+[22/Apr/2026 15:43:34] "OPTIONS /api/vendas/59/finalizar/ HTTP/1.1" 200 0
+[22/Apr/2026 15:43:35] "POST /api/vendas/59/finalizar/ HTTP/1.1" 200 773
+[22/Apr/2026 15:43:35] "OPTIONS /api/vendas/59/emitir-nfce/ HTTP/1.1" 200 0
+Bad Request: /api/vendas/59/emitir-nfce/
+[22/Apr/2026 15:43:42] "POST /api/vendas/59/emitir-nfce/ HTTP/1.1" 400 42
+[22/Apr/2026 15:43:42] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 52
+[22/Apr/2026 15:44:34] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 7894
+[22/Apr/2026 15:48:47] "GET /api/clientes/ HTTP/1.1" 200 13130
+[22/Apr/2026 15:48:48] "GET /api/sessoes-caixa/ativa/ HTTP/1.1" 200 377
+[22/Apr/2026 15:48:48] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 52
+[22/Apr/2026 15:48:50] "GET /api/produtos/busca-pdv/?q=C HTTP/1.1" 200 3104
+[22/Apr/2026 15:48:50] "GET /api/produtos/busca-pdv/?q=CO HTTP/1.1" 200 3059
+[22/Apr/2026 15:48:51] "GET /api/produtos/busca-pdv/?q=COP HTTP/1.1" 200 3075
+[22/Apr/2026 15:48:51] "GET /api/produtos/busca-pdv/?q=COPO HTTP/1.1" 200 3075
+[22/Apr/2026 15:48:53] "POST /api/vendas/ HTTP/1.1" 201 329
+[22/Apr/2026 15:48:54] "POST /api/venda-itens/ HTTP/1.1" 201 99
+[22/Apr/2026 15:48:54] "OPTIONS /api/vendas/60/ HTTP/1.1" 200 0
+[22/Apr/2026 15:48:54] "PATCH /api/vendas/60/ HTTP/1.1" 200 329
+[22/Apr/2026 15:48:55] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 825
+[22/Apr/2026 15:48:59] "OPTIONS /api/vendas/60/finalizar/ HTTP/1.1" 200 0
+[22/Apr/2026 15:49:01] "POST /api/vendas/60/finalizar/ HTTP/1.1" 200 773
+[22/Apr/2026 15:49:01] "OPTIONS /api/vendas/60/emitir-nfce/ HTTP/1.1" 200 0
+Bad Request: /api/vendas/60/emitir-nfce/
+[22/Apr/2026 15:49:07] "POST /api/vendas/60/emitir-nfce/ HTTP/1.1" 400 42
+[22/Apr/2026 15:49:08] "GET /api/vendas/?sessao=18&status=EM_ABERTO HTTP/1.1" 200 52
+[22/Apr/2026 15:49:27] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 8762
+[22/Apr/2026 15:50:02] "GET /api/vendas/?q=&data_inicio=2026-04-22&data_fim=2026-04-22 HTTP/1.1" 200 8762
+Unauthorized: /api/vendas/
+[22/Apr/2026 15:52:58] "GET /api/vendas/ HTTP/1.1" 401 166
