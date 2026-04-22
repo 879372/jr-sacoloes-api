@@ -14,7 +14,7 @@ class NotaCompra(BaseModel):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     # XML para integração futura com API
     xml_nfe = models.TextField(blank=True, null=True, help_text="XML da NF-e (integração futura)")
-    chave_acesso = models.CharField(max_length=50, blank=True, null=True)
+    chave_acesso = models.CharField(max_length=50, blank=True, null=True, unique=True)
     api_source = models.CharField(max_length=50, blank=True, null=True, help_text="Fonte da API (uso futuro)")
     observacoes = models.TextField(blank=True)
 
