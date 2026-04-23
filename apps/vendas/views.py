@@ -17,7 +17,6 @@ from .serializers import (
     VendaFinalizarSerializer
 )
 
-
 @extend_schema(tags=['Caixa'])
 class SessaoCaixaViewSet(viewsets.ModelViewSet):
     queryset = SessaoCaixa.objects.all().select_related('operador')
