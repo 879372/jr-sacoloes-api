@@ -240,13 +240,17 @@ class VendaViewSet(viewsets.ModelViewSet):
                         )
 
                 venda.status = 'FINALIZADA'
-                venda.nf_emitida = request.data.get('emitir_fiscal', False)
+                # NÃO marcar nf_emitida=True aqui — será feito em _executar_emissao_fiscal_venda
+                # apenas na confirmação da SEFAZ, evitando marcar como emitida em caso de rejeição.
+                emitir_fiscal = request.data.get('emitir_fiscal', False)
+                if emitir_fiscal:
+                    venda.nf_tipo = request.data.get('tipo', 'nfce')
                 if cliente_id:
                     venda.cliente_id = cliente_id
                 venda.save()
 
                 # Se solicitou emissão fiscal, tenta emitir AGORA dentro da transação
-                if venda.nf_emitida:
+                if emitir_fiscal:
                     self._executar_emissao_fiscal_venda(venda)
 
         except Exception as e:

@@ -55,24 +55,37 @@ def dashboard_stats(request):
         data_entrada__gte=start_of_month
     ).aggregate(total=Sum('valor_total'))['total'] or 0
     
-    # 3. Lucro por Categoria (Top 5)
+    # 3. Lucro por Categoria — considera desconto proporcional da venda
     from apps.vendas.models import VendaItem
-    from django.db.models import F
-    
-    lucro_categorias = VendaItem.objects.filter(
-        venda__status='FINALIZADA',
-        venda__created_at__date__gte=start_of_month
-    ).values('produto__grupo').annotate(
-        lucro=Sum((F('preco_unitario') - F('produto__preco_compra')) * F('quantidade'))
-    ).order_by('-lucro')
+    from collections import defaultdict
 
-    lucro_ranking = [
-        {
-            "name": item['produto__grupo'] or "Geral", 
-            "total": float(item['lucro'] or 0)
-        } 
-        for item in lucro_categorias
-    ]
+    vendas_mes_qs = Venda.objects.filter(
+        status='FINALIZADA',
+        created_at__date__gte=start_of_month
+    ).prefetch_related('itens__produto')
+
+    lucro_por_grupo: dict = defaultdict(float)
+
+    for venda in vendas_mes_qs:
+        itens = list(venda.itens.all())
+        if not itens:
+            continue
+        total_itens = sum(float(i.preco_unitario) * float(i.quantidade) for i in itens)
+        desconto = float(venda.desconto or 0)
+        desconto_ratio = desconto / total_itens if total_itens > 0 else 0
+
+        for item in itens:
+            if not item.produto:
+                continue
+            grupo = item.produto.grupo or 'Geral'
+            preco_liq = float(item.preco_unitario) * (1 - desconto_ratio)
+            lucro_item = (preco_liq - float(item.produto.preco_compra)) * float(item.quantidade)
+            lucro_por_grupo[grupo] += lucro_item
+
+    lucro_ranking = sorted(
+        [{'name': k, 'total': round(v, 2)} for k, v in lucro_por_grupo.items()],
+        key=lambda x: -x['total']
+    )
 
     # 4. Gráfico de 7 dias
     grafico_vendas = []

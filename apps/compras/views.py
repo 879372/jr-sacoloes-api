@@ -58,5 +58,19 @@ class NotaCompraViewSet(viewsets.ModelViewSet):
             
             nota.status = 'RECEBIDA'
             nota.save()
+
+            # Gera Conta a Pagar para o fornecedor automaticamente
+            from apps.financeiro.models import ContaPagar
+            from django.utils import timezone
+            from datetime import timedelta
+
+            ContaPagar.objects.create(
+                descricao=f"NF {nota.numero_nf or nota.chave_acesso or nota.id} - {nota.fornecedor}",
+                fornecedor=nota.fornecedor,
+                valor=nota.valor_total,
+                vencimento=timezone.now().date() + timedelta(days=30),
+                status='PENDENTE',
+                observacoes=f'Gerado automaticamente ao confirmar recebimento da NF de compra #{nota.id}.'
+            )
             
-        return Response({'status': 'Nota recebida e estoque atualizado.'})
+        return Response({'status': 'Nota recebida, estoque atualizado e conta a pagar gerada.'})
