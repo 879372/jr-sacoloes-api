@@ -97,11 +97,24 @@ def dashboard_stats(request):
             "total": float(valor_dia)
         })
 
+    # 5. Alertas de Ruptura (Estoque Baixo)
+    produtos_ruptura_qs = EstoqueLoja.objects.filter(quantidade__lte=10).select_related('produto')
+    produtos_ruptura = [
+        {
+            "id": item.produto.id,
+            "nome": item.produto.nome,
+            "qtd": float(item.quantidade)
+        }
+        for item in produtos_ruptura_qs[:5]
+    ]
+
     return Response({
         "faturamento_hoje": float(faturamento_hoje),
         "total_vendas_hoje": total_vendas_hoje,
         "faturamento_mes": float(faturamento_mes),
         "compras_mes": float(compras_mes),
         "grafico_vendas": grafico_vendas,
-        "lucro_por_categoria": lucro_ranking
+        "lucro_por_categoria": lucro_ranking,
+        "produtos_ruptura": produtos_ruptura
     })
+
