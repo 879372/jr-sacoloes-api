@@ -301,8 +301,12 @@ class VendaViewSet(viewsets.ModelViewSet):
                 "cst_icms": "00"
             })
 
+        # Busca pagamentos de forma robusta (ignora cache da instância em transação)
+        from .models import VendaPagamento
+        pagamentos_queryset = VendaPagamento.objects.filter(venda=venda)
+        
         pagamentos = []
-        for p in venda.pagamentos.all():
+        for p in pagamentos_queryset:
             forma_map = {
                 'DINHEIRO': '01',
                 'CARTAO_CREDITO': '03',
@@ -313,6 +317,13 @@ class VendaViewSet(viewsets.ModelViewSet):
             pagamentos.append({
                 "forma": forma_map.get(str(p.forma).upper(), '99'),
                 "valor": float(p.valor)
+            })
+
+        # Fallback de segurança: NFC-e exige ao menos um pagamento
+        if not pagamentos:
+            pagamentos.append({
+                "forma": "01", # Dinheiro
+                "valor": float(venda.total)
             })
 
         payload = {
