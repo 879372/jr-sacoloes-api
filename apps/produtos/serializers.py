@@ -46,4 +46,4 @@ class ProdutoSimplificadoSerializer(serializers.ModelSerializer):
     """Versão leve para uso no PDV (busca rápida)"""
     class Meta:
         model = Produto
-        fields = ['id', 'codigo_legado', 'nome', 'codigo_barras', 'preco_venda', 'unidade_medida']
+        fields = ['id', 'codigo_legado', 'nome', 'codigo_barras', 'preco_venda', 'unidade_medida', 'ncm', 'cfop_padrao']

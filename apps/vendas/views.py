@@ -242,19 +242,33 @@ class VendaViewSet(viewsets.ModelViewSet):
                             observacoes=f'Originada da Venda #{venda.id} no PDV.'
                         )
 
-                venda.status = 'FINALIZADA'
-                # NÃO marcar nf_emitida=True aqui — será feito em _executar_emissao_fiscal_venda
-                # apenas na confirmação da SEFAZ, evitando marcar como emitida em caso de rejeição.
+                # Se solicitou emissão fiscal, tenta emitir AGORA dentro da transação
+                # Se falhar, lançará ValueError e dará Rollback em tudo (estoque, pagamentos, etc)
                 emitir_fiscal = request.data.get('emitir_fiscal', False)
                 if emitir_fiscal:
                     venda.nf_tipo = request.data.get('tipo', 'nfce')
+                    if cliente_id:
+                        venda.cliente_id = cliente_id
+                    # Chamada ao gateway (não salva no banco ainda)
+                    fiscal_data = self._executar_emissao_fiscal_venda(venda)
+                    
+                    # Se não deu erro, preenche os dados fiscais na venda
+                    venda.nf_id_fiscal = fiscal_data.get('id')
+                    venda.nf_chave = fiscal_data.get('chave_acesso')
+                    venda.nf_numero = fiscal_data.get('numero')
+                    venda.nf_serie = fiscal_data.get('serie')
+                    venda.nf_protocolo = fiscal_data.get('protocolo')
+                    venda.nf_qr_code = fiscal_data.get('qr_code')
+                    venda.nf_url_pdf = fiscal_data.get('url_consulta') or fiscal_data.get('caminho_danfe')
+                    venda.nf_status = 'AUTORIZADA'
+                    venda.nf_mensagem = fiscal_data.get('mensagem_sefaz')
+                    venda.nf_emitida = True
+                
+                # SUCESSO TOTAL: Agora sim finalizamos a venda
+                venda.status = 'FINALIZADA'
                 if cliente_id:
                     venda.cliente_id = cliente_id
                 venda.save()
-
-                # Se solicitou emissão fiscal, tenta emitir AGORA dentro da transação
-                if emitir_fiscal:
-                    self._executar_emissao_fiscal_venda(venda)
 
         except Exception as e:
             # Captura erros amigáveis (como os da SEFAZ) e retorna 400
@@ -340,20 +354,7 @@ class VendaViewSet(viewsets.ModelViewSet):
             )
             
             if resp.status_code in [200, 201]:
-                data = resp.json()
-                venda.nf_tipo = modelo_doc
-                venda.nf_id_fiscal = data.get('id')
-                venda.nf_chave = data.get('chave_acesso')
-                venda.nf_numero = data.get('numero')
-                venda.nf_serie = data.get('serie')
-                venda.nf_protocolo = data.get('protocolo')
-                venda.nf_qr_code = data.get('qr_code')
-                venda.nf_url_pdf = data.get('url_consulta') or data.get('caminho_danfe')
-                venda.nf_status = 'AUTORIZADA'
-                venda.nf_mensagem = data.get('mensagem_sefaz')
-                venda.nf_emitida = True
-                venda.save()
-                return data
+                return resp.json()
             else:
                 try:
                     error_data = resp.json()
@@ -361,10 +362,6 @@ class VendaViewSet(viewsets.ModelViewSet):
                 except:
                     msg = f"HTTP {resp.status_code}"
                 
-                venda.nf_tipo = modelo_doc
-                venda.nf_status = 'ERRO'
-                venda.nf_mensagem = msg
-                venda.save()
                 raise ValueError(f"Erro na API Fiscal: {msg}")
 
         except requests.exceptions.RequestException as e:
@@ -435,6 +432,20 @@ class VendaViewSet(viewsets.ModelViewSet):
         
         try:
             data = self._executar_emissao_fiscal_venda(venda, tipo=tipo)
+            
+            # Persiste os dados fiscais na venda
+            venda.nf_id_fiscal = data.get('id')
+            venda.nf_chave = data.get('chave_acesso')
+            venda.nf_numero = data.get('numero')
+            venda.nf_serie = data.get('serie')
+            venda.nf_protocolo = data.get('protocolo')
+            venda.nf_qr_code = data.get('qr_code')
+            venda.nf_url_pdf = data.get('url_consulta') or data.get('caminho_danfe')
+            venda.nf_status = 'AUTORIZADA'
+            venda.nf_mensagem = data.get('mensagem_sefaz')
+            venda.nf_emitida = True
+            venda.save()
+            
             return Response(data)
         except ValueError as e:
             return Response({'erro': str(e)}, status=400)
