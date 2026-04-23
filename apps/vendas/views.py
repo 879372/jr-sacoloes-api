@@ -130,6 +130,7 @@ class VendaViewSet(viewsets.ModelViewSet):
 
         nf_emitida = self.request.query_params.get('nf_emitida')
         nf_tipo = self.request.query_params.get('nf_tipo')
+        fiscal = self.request.query_params.get('fiscal')
 
         if sessao:
             queryset = queryset.filter(sessao_id=sessao)
@@ -144,6 +145,8 @@ class VendaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(nf_emitida=nf_emitida.lower() == 'true')
         if nf_tipo:
             queryset = queryset.filter(nf_tipo=nf_tipo.lower())
+        if fiscal and fiscal.lower() == 'true':
+            queryset = queryset.filter(nf_status__isnull=False)
         
         return queryset.order_by('-data')
 
@@ -309,8 +312,18 @@ class VendaViewSet(viewsets.ModelViewSet):
 
         if venda.cliente:
             payload["destinatario"] = {
-                "cpf": venda.cliente.cpf_cnpj.replace('.', '').replace('-', '').replace('/', '') if venda.cliente.cpf_cnpj else None,
-                "nome": venda.cliente.nome
+                "cpf_cnpj": venda.cliente.cpf_cnpj.replace('.', '').replace('-', '').replace('/', '') if venda.cliente.cpf_cnpj else None,
+                "nome": venda.cliente.nome,
+                "email": venda.cliente.email,
+                "endereco": {
+                    "logradouro": (venda.cliente.endereco or "Rua Desconhecida")[:60],
+                    "numero": "S/N",
+                    "bairro": (venda.cliente.bairro or "Bairro")[:60],
+                    "cidade": (venda.cliente.cidade or "Cidade")[:60],
+                    "codigo_ibge": "2408102", # Código IBGE de Natal-RN (Padrão para teste)
+                    "uf": (venda.cliente.uf or "RN")[:2],
+                    "cep": (venda.cliente.cep or "00000000").replace('-', '')[:8]
+                }
             }
 
         # Seleciona endpoint conforme o tipo
@@ -344,11 +357,13 @@ class VendaViewSet(viewsets.ModelViewSet):
             else:
                 try:
                     error_data = resp.json()
-                    msg = error_data.get('detail') or error_data.get('mensagem') or 'Erro desconhecido'
+                    msg = error_data.get('mensagem_sefaz') or error_data.get('detail') or error_data.get('mensagem') or 'Erro desconhecido'
                 except:
                     msg = f"HTTP {resp.status_code}"
                 
+                venda.nf_tipo = modelo_doc
                 venda.nf_status = 'ERRO'
+                venda.nf_mensagem = msg
                 venda.save()
                 raise ValueError(f"Erro na API Fiscal: {msg}")
 
