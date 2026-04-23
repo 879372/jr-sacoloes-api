@@ -303,7 +303,7 @@ class VendaViewSet(viewsets.ModelViewSet):
             "itens": itens_fiscal,
             "total": float(venda.total),
             "pagamento": pagamentos,
-            "ambiente": "homologacao", # TODO: Mudar para 'producao' em prod
+            "ambiente": config('FISCAL_AMBIENTE', default='producao'),
             "presenca": "1" # Presencial
         }
 
