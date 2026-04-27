@@ -16,8 +16,8 @@ CORS_ALLOWED_ORIGINS = [
 # Static Files (WhiteNoise)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Usando o armazenamento mais simples e robusto para evitar erros de build
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
-WHITENOISE_USE_FINDERS = True
 WHITENOISE_MANIFEST_STRICT = False
 
 # CSRF & Security (Consistent with Dispatcher project)
