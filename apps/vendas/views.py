@@ -321,10 +321,16 @@ class VendaViewSet(viewsets.ModelViewSet):
                 'PIX': '17',
                 'FIADO': '99'
             }
-            pagamentos.append({
-                "forma": forma_map.get(str(p.forma).upper(), '99'),
+            forma = forma_map.get(str(p.forma).upper(), '99')
+            pagto_item = {
+                "forma": forma,
                 "valor": float(p.valor)
-            })
+            }
+            # Se for Cartão ou PIX, informa que não é integrado (maquininha manual)
+            if forma in ['03', '04', '17']:
+                pagto_item["tpIntegra"] = 2
+                
+            pagamentos.append(pagto_item)
 
         # Fallback de segurança: NFC-e exige ao menos um pagamento
         if not pagamentos:
