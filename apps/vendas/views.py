@@ -171,10 +171,13 @@ class VendaViewSet(viewsets.ModelViewSet):
         if not pagamentos_data:
             return Response({'erro': 'Informe ao menos uma forma de pagamento.'}, status=400)
 
-        from decimal import Decimal
-        desconto = Decimal(str(request.data.get('desconto', 0)))
-        total_pago = sum(Decimal(str(p.get('valor', 0))) for p in pagamentos_data)
-        total_liquido = venda.total - desconto
+        from decimal import Decimal, ROUND_HALF_UP
+        def quantize(val):
+            return Decimal(str(val)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        desconto = quantize(request.data.get('desconto', 0))
+        total_pago = quantize(sum(Decimal(str(p.get('valor', 0))) for p in pagamentos_data))
+        total_liquido = quantize(venda.total - desconto)
         
         if total_pago < total_liquido - Decimal('0.05'):
              return Response({
@@ -184,20 +187,20 @@ class VendaViewSet(viewsets.ModelViewSet):
         troco = total_pago - total_liquido
         if troco > Decimal('0.05'):
             pagamento_dinheiro = next((p for p in pagamentos_data if str(p.get('forma', '')).strip().upper() == 'DINHEIRO'), None)
-            if not pagamento_dinheiro:
-                formas_enviadas = [p.get('forma') for p in pagamentos_data]
-                return Response({
-                    'erro': f'Pagamento maior que o total suportado apenas para DINHEIRO (Troco). Formas enviadas: {formas_enviadas}'
-                }, status=400)
             
-            valor_em_dinheiro = Decimal(str(pagamento_dinheiro.get('valor', 0)))
-            if troco > valor_em_dinheiro + Decimal('0.05'):
-                 return Response({
-                    'erro': 'O troco é maior do que o valor pago em dinheiro, o que é inválido.'
-                 }, status=400)
-            
-            # Abate o troco no pagamento em dinheiro para que o banco de dados armazene apenas o valor real recebido
-            pagamento_dinheiro['valor'] = float(valor_em_dinheiro - troco)
+            if pagamento_dinheiro:
+                valor_em_dinheiro = Decimal(str(pagamento_dinheiro.get('valor', 0)))
+                if troco > valor_em_dinheiro + Decimal('0.05'):
+                     return Response({
+                        'erro': 'O troco é maior do que o valor pago em dinheiro, o que é inválido.'
+                     }, status=400)
+                
+                # Abate o troco no pagamento em dinheiro para que o caixa físico bata
+                pagamento_dinheiro['valor'] = float(valor_em_dinheiro - troco)
+            else:
+                # Se não tem dinheiro, mas o total é maior (ex: PIX arredondado pra cima)
+                # Apenas deixamos passar, o valor registrado será o valor cheio enviado.
+                pass
         try:
             with transaction.atomic():
                 itens = venda.itens.select_related('produto').all()
