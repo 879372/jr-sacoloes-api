@@ -25,8 +25,8 @@ class ProdutoViewSet(viewsets.ModelViewSet):
     ordering_fields = ['nome', 'preco_venda', 'grupo']
 
     def get_queryset(self):
-        # Filtra apenas ativos por padrão na listagem, a menos que solicitado o contrário
-        return super().get_queryset().filter(ativo=True)
+        # Retorna todos os produtos para a gestão (ativos e inativos)
+        return super().get_queryset()
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
