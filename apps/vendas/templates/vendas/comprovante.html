@@ -149,6 +149,12 @@
             {% if venda.nf_emitida %}
                 <p>NFC-e Autorizada: {{ venda.nf_numero }} - Série {{ venda.nf_serie }}</p>
                 <p>Chave: {{ venda.nf_chave }}</p>
+                {% if venda.nf_url_consulta %}
+                <div class="text-center" style="margin-top: 15px;">
+                    <p style="font-size: 10px; margin-bottom: 5px;">Consulta via QR Code</p>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ venda.nf_url_consulta|urlencode }}" alt="QR Code NFC-e" style="width: 120px; height: 120px;">
+                </div>
+                {% endif %}
             {% else %}
                 <p>*** DOCUMENTO SEM VALOR FISCAL ***</p>
             {% endif %}
