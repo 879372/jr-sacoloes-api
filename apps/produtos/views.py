@@ -19,7 +19,7 @@ class GrupoViewSet(viewsets.ModelViewSet):
 
 
 class ProdutoViewSet(viewsets.ModelViewSet):
-    queryset = Produto.objects.all().prefetch_related('estoques')
+    queryset = Produto.objects.all().prefetch_related('estoques').order_by('codigo_legado')
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['nome', 'codigo_barras', 'codigo_legado', 'ncm']
     ordering_fields = ['nome', 'preco_venda', 'grupo']

@@ -1,5 +1,6 @@
 from django.db import models, transaction
 from django.db.models import Q
+from django.shortcuts import render, get_object_or_404
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -14,7 +15,8 @@ from .serializers import (
     VendaItemSerializer, 
     VendaPagamentoSerializer,
     OperacaoCaixaSerializer,
-    VendaFinalizarSerializer
+    VendaFinalizarSerializer,
+    PagamentoInputSerializer
 )
 
 @extend_schema(tags=['Caixa'])
@@ -170,14 +172,16 @@ class VendaViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Informe ao menos uma forma de pagamento.'}, status=400)
 
         from decimal import Decimal
+        desconto = Decimal(str(request.data.get('desconto', 0)))
         total_pago = sum(Decimal(str(p.get('valor', 0))) for p in pagamentos_data)
+        total_liquido = venda.total - desconto
         
-        if total_pago < venda.total - Decimal('0.05'):
+        if total_pago < total_liquido - Decimal('0.05'):
              return Response({
-                 'erro': f'O total dos pagamentos (R${total_pago:.2f}) não atinge o total da venda (R${venda.total:.2f}).'
+                 'erro': f'O total dos pagamentos (R${total_pago:.2f}) não atinge o total líquido da venda (R${total_liquido:.2f}).'
              }, status=400)
 
-        troco = total_pago - venda.total
+        troco = total_pago - total_liquido
         if troco > Decimal('0.05'):
             pagamento_dinheiro = next((p for p in pagamentos_data if str(p.get('forma', '')).strip().upper() == 'DINHEIRO'), None)
             if not pagamento_dinheiro:
@@ -265,6 +269,7 @@ class VendaViewSet(viewsets.ModelViewSet):
                 
                 # SUCESSO TOTAL: Agora sim finalizamos a venda
                 venda.status = 'FINALIZADA'
+                venda.desconto = desconto
                 if cliente_id:
                     venda.cliente_id = cliente_id
                 venda.save()
@@ -472,3 +477,8 @@ class VendaPagamentoViewSet(viewsets.ModelViewSet):
 class OperacaoCaixaViewSet(viewsets.ModelViewSet):
     queryset = OperacaoCaixa.objects.all()
     serializer_class = OperacaoCaixaSerializer
+
+def comprovante_venda_publico(request, id_externo):
+    """View pública para exibir o comprovante da venda via link compartilhado"""
+    venda = get_object_or_404(Venda, id_externo=id_externo)
+    return render(request, 'vendas/comprovante.html', {'venda': venda})

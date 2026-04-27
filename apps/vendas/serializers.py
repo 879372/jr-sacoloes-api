@@ -40,7 +40,8 @@ class VendaSerializer(serializers.ModelSerializer):
             'id', 'sessao', 'cliente', 'data',
             'total', 'desconto', 'status', 'observacoes',
             'nf_emitida', 'nf_tipo', 'nf_id_fiscal', 'nf_chave', 'nf_numero', 'nf_serie', 
-            'nf_protocolo', 'nf_qr_code', 'nf_url_pdf', 'nf_status', 'nf_mensagem'
+            'nf_protocolo', 'nf_qr_code', 'nf_url_pdf', 'nf_status', 'nf_mensagem',
+            'id_externo'
         ]
 
 
@@ -50,6 +51,8 @@ class VendaReadSerializer(VendaSerializer):
     pagamentos = VendaPagamentoSerializer(many=True, read_only=True)
     cliente_nome = serializers.ReadOnlyField(source='cliente.nome')
     operador_nome = serializers.ReadOnlyField(source='sessao.operador.username')
+
+    id_externo = serializers.ReadOnlyField()
 
     class Meta(VendaSerializer.Meta):
         fields = VendaSerializer.Meta.fields + ['itens', 'pagamentos', 'cliente_nome', 'operador_nome', 'created_at', 'updated_at']
@@ -115,4 +118,7 @@ class PagamentoInputSerializer(serializers.Serializer):
 
 class VendaFinalizarSerializer(serializers.Serializer):
     pagamentos = PagamentoInputSerializer(many=True)
+    desconto = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     emitir_fiscal = serializers.BooleanField(default=False, required=False)
+    tipo = serializers.ChoiceField(choices=[('nfce', 'NFC-e'), ('nfe', 'NF-e')], default='nfce', required=False)
+    cliente = serializers.IntegerField(required=False, allow_null=True)

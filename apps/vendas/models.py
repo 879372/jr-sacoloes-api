@@ -59,6 +59,10 @@ class Venda(BaseModel):
     objects = ActiveManager()
     all_objects = models.Manager()
 
+    @property
+    def total_liquido(self):
+        return (self.total or 0) - (self.desconto or 0)
+
     class Meta:
         app_label = 'vendas'
 

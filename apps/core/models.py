@@ -6,6 +6,7 @@ class ActiveManager(models.Manager):
         return super().get_queryset().filter(is_deleted=False)
 
 class BaseModel(models.Model):
+    id_externo = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_deleted = models.BooleanField(default=False)  # soft delete
