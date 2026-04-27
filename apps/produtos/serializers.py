@@ -54,6 +54,30 @@ class ProdutoSerializer(serializers.ModelSerializer):
             )
         return produto
 
+    def update(self, instance, validated_data):
+        novo_estoque = validated_data.pop('estoque_inicial', None)
+        produto = super().update(instance, validated_data)
+        
+        if novo_estoque is not None:
+            estoque_obj, created = EstoqueLoja.objects.get_or_create(produto=produto, loja='Loja Principal')
+            estoque_atual = estoque_obj.quantidade
+            diferenca = novo_estoque - estoque_atual
+            
+            if diferenca != 0:
+                estoque_obj.quantidade = novo_estoque
+                estoque_obj.save()
+                
+                MovimentacaoEstoque.objects.create(
+                    produto=produto,
+                    tipo='ENTRADA' if diferenca > 0 else 'SAIDA',
+                    motivo='AJUSTE',
+                    quantidade=abs(diferenca),
+                    saldo_anterior=estoque_atual,
+                    saldo_atual=novo_estoque,
+                    observacoes='Ajuste manual via cadastro de produto.'
+                )
+        return produto
+
 
 class ProdutoReadSerializer(ProdutoSerializer):
     """Serializer detalhado para leitura (GET) com estoques aninhados"""
