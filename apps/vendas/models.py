@@ -63,6 +63,13 @@ class Venda(BaseModel):
     def total_liquido(self):
         return (self.total or 0) - (self.desconto or 0)
 
+    def recalcular_total(self):
+        """Soma todos os itens e atualiza o total da venda"""
+        from django.db.models import Sum
+        novo_total = self.itens.aggregate(res=Sum('subtotal'))['res'] or 0
+        Venda.objects.filter(pk=self.pk).update(total=novo_total)
+        return novo_total
+
     class Meta:
         app_label = 'vendas'
 
@@ -86,6 +93,12 @@ class VendaItem(BaseModel):
     def save(self, *args, **kwargs):
         self.subtotal = self.quantidade * self.preco_unitario
         super().save(*args, **kwargs)
+        self.venda.recalcular_total()
+
+    def delete(self, *args, **kwargs):
+        venda = self.venda
+        super().delete(*args, **kwargs)
+        venda.recalcular_total()
 
     def __str__(self):
         return f"{self.produto.nome} x {self.quantidade}"
