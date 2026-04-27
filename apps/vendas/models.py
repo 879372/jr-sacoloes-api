@@ -142,3 +142,4 @@ class OperacaoCaixa(BaseModel):
 
     def __str__(self):
         return f"{self.tipo} - R$ {self.valor}"
+    
