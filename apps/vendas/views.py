@@ -369,10 +369,23 @@ class VendaViewSet(viewsets.ModelViewSet):
         fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/{endpoint}/emitir/"
         fiscal_key = config('FISCAL_API_KEY')
 
+        import json as json_lib
+        from decimal import Decimal as _Decimal
+
+        class DecimalEncoder(json_lib.JSONEncoder):
+            """Garante que Decimal do Django sejam convertidos para float no JSON."""
+            def default(self, obj):
+                if isinstance(obj, _Decimal):
+                    return float(obj)
+                return super().default(obj)
+
+        # Serializa para garantir que não há Decimal (JSONField do Django pode conter)
+        payload_serializado = json_lib.loads(json_lib.dumps(payload, cls=DecimalEncoder))
+
         try:
             resp = requests.post(
-                fiscal_url, 
-                json=payload, 
+                fiscal_url,
+                json=payload_serializado,
                 headers={'X-Api-Key': fiscal_key},
                 timeout=30
             )
