@@ -32,6 +32,21 @@ class NotaCompraSerializer(serializers.ModelSerializer):
         allow_blank=True
     )
 
+    def validate_chave_acesso(self, value):
+        """Converte strings vazias para None para evitar conflito de unicidade no DB"""
+        if value == "" or value is None:
+            return None
+        return value
+
+    def to_internal_value(self, data):
+        """Pre-processamento para converter strings vazias em campos opcionais para None"""
+        if 'chave_acesso' in data and data['chave_acesso'] == "":
+            # Cria uma cópia mutável se necessário
+            if hasattr(data, 'copy'):
+                data = data.copy()
+            data['chave_acesso'] = None
+        return super().to_internal_value(data)
+
     class Meta:
         model = NotaCompra
         fields = [
