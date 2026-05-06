@@ -20,6 +20,7 @@ from dateutil.relativedelta import relativedelta
 
 class ContaPagarViewSet(viewsets.ModelViewSet):
     queryset = ContaPagar.objects.all().select_related('categoria')
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['descricao', 'fornecedor']
     ordering_fields = ['vencimento', 'valor', 'status']
@@ -55,6 +56,7 @@ class ContaPagarViewSet(viewsets.ModelViewSet):
 
 class ContaReceberViewSet(viewsets.ModelViewSet):
     queryset = ContaReceber.objects.all().select_related('categoria')
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['descricao', 'cliente_nome']
     ordering_fields = ['vencimento', 'valor', 'status']
