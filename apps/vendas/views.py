@@ -23,6 +23,17 @@ from .serializers import (
 class SessaoCaixaViewSet(viewsets.ModelViewSet):
     queryset = SessaoCaixa.objects.all().select_related('operador')
     serializer_class = SessaoCaixaSerializer
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        data_inicio = self.request.query_params.get('data_inicio')
+        data_fim = self.request.query_params.get('data_fim')
+        
+        if data_inicio:
+            queryset = queryset.filter(data_abertura__date__gte=data_inicio)
+        if data_fim:
+            queryset = queryset.filter(data_abertura__date__lte=data_fim)
+            
+        return queryset.order_by('-data_abertura')
 
     def perform_create(self, serializer):
         serializer.save(operador=self.request.user)

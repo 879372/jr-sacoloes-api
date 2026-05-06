@@ -38,35 +38,50 @@ def dashboard_stats(request):
     from apps.produtos.models import EstoqueLoja, Produto
     
     today = timezone.now().date()
-    start_of_month = today.replace(day=1)
     
+    # Recebe filtros de data (formato YYYY-MM-DD)
+    data_inicio = request.query_params.get('data_inicio')
+    data_fim = request.query_params.get('data_fim')
+    
+    if data_inicio:
+        start_date = data_inicio
+    else:
+        start_date = today.replace(day=1)
+        
+    if data_fim:
+        end_date = data_fim
+    else:
+        end_date = today
+
     # 1. KPIs Financeiros
     vendas_hoje = Venda.objects.filter(status='FINALIZADA', created_at__date=today)
     faturamento_hoje = vendas_hoje.aggregate(total=Sum('total'))['total'] or 0
     total_vendas_hoje = vendas_hoje.count()
     
-    vendas_mes = Venda.objects.filter(status='FINALIZADA', created_at__date__gte=start_of_month)
-    faturamento_mes = vendas_mes.aggregate(total=Sum('total'))['total'] or 0
+    vendas_periodo = Venda.objects.filter(status='FINALIZADA', created_at__date__gte=start_date, created_at__date__lte=end_date)
+    faturamento_periodo = vendas_periodo.aggregate(total=Sum('total'))['total'] or 0
     
-    # 2. Compras do Mês (Entradas via NF)
+    # 2. Compras do Período (Entradas via NF)
     from apps.compras.models import NotaCompra
-    compras_mes = NotaCompra.objects.filter(
+    compras_periodo = NotaCompra.objects.filter(
         status='RECEBIDA', 
-        data_entrada__gte=start_of_month
+        data_entrada__gte=start_date,
+        data_entrada__lte=end_date
     ).aggregate(total=Sum('valor_total'))['total'] or 0
     
     # 3. Lucro por Categoria — considera desconto proporcional da venda
     from apps.vendas.models import VendaItem
     from collections import defaultdict
 
-    vendas_mes_qs = Venda.objects.filter(
+    vendas_periodo_qs = Venda.objects.filter(
         status='FINALIZADA',
-        created_at__date__gte=start_of_month
+        created_at__date__gte=start_date,
+        created_at__date__lte=end_date
     ).prefetch_related('itens__produto')
 
     lucro_por_grupo: dict = defaultdict(float)
 
-    for venda in vendas_mes_qs:
+    for venda in vendas_periodo_qs:
         itens = list(venda.itens.all())
         if not itens:
             continue
@@ -111,8 +126,8 @@ def dashboard_stats(request):
     return Response({
         "faturamento_hoje": float(faturamento_hoje),
         "total_vendas_hoje": total_vendas_hoje,
-        "faturamento_mes": float(faturamento_mes),
-        "compras_mes": float(compras_mes),
+        "faturamento_mes": float(faturamento_periodo),
+        "compras_mes": float(compras_periodo),
         "grafico_vendas": grafico_vendas,
         "lucro_por_categoria": lucro_ranking,
         "produtos_ruptura": produtos_ruptura
