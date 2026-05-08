@@ -354,6 +354,7 @@ class VendaViewSet(viewsets.ModelViewSet):
             "cnpj_emitente": config('EMPRESA_CNPJ', default='00000000000000'),
             "itens": itens_fiscal,
             "total": float(venda.total),
+            "desconto": float(venda.desconto or 0),
             "pagamento": pagamentos,
             "ambiente": config('FISCAL_AMBIENTE', default='producao'),
             "presenca": "1" # Presencial
