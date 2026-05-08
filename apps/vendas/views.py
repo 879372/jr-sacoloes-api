@@ -306,7 +306,23 @@ class VendaViewSet(viewsets.ModelViewSet):
         
         # Monta Payload para o Gateway Fiscal
         itens_fiscal = []
-        for item in venda.itens.select_related('produto').all():
+        itens_obj = list(venda.itens.select_related('produto').all())
+        desconto_total = float(venda.desconto or 0)
+        total_venda = float(venda.total)
+        desconto_distribuido = 0.0
+
+        for idx, item in enumerate(itens_obj):
+            subtotal = float(item.subtotal)
+            if total_venda > 0:
+                item_desc = round(desconto_total * (subtotal / total_venda), 2)
+            else:
+                item_desc = 0.0
+
+            if idx == len(itens_obj) - 1:
+                item_desc = round(desconto_total - desconto_distribuido, 2)
+            
+            desconto_distribuido += item_desc
+
             itens_fiscal.append({
                 "codigo": item.produto.codigo_barras or str(item.produto.id),
                 "descricao": (item.produto.nome or "PRODUTO")[:200],
@@ -315,7 +331,8 @@ class VendaViewSet(viewsets.ModelViewSet):
                 "unidade": (item.produto.unidade_medida or "UN")[:6],
                 "quantidade": float(item.quantidade),
                 "valor_unitario": float(item.preco_unitario),
-                "valor_total": float(item.subtotal),
+                "valor_total": subtotal,
+                "desconto": item_desc,
                 "cst_icms": "00"
             })
 
