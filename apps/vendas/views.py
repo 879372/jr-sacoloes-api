@@ -259,14 +259,18 @@ class VendaViewSet(viewsets.ModelViewSet):
                             observacoes=f'Originada da Venda #{venda.id} no PDV.'
                         )
 
+                # SUCESSO TOTAL: Agora sim finalizamos a venda
+                venda.status = 'FINALIZADA'
+                venda.desconto = desconto
+                if cliente_id:
+                    venda.cliente_id = cliente_id
+                
                 # Se solicitou emissão fiscal, tenta emitir AGORA dentro da transação
                 # Se falhar, lançará ValueError e dará Rollback em tudo (estoque, pagamentos, etc)
                 emitir_fiscal = request.data.get('emitir_fiscal', False)
                 if emitir_fiscal:
                     venda.nf_tipo = request.data.get('tipo', 'nfce')
-                    if cliente_id:
-                        venda.cliente_id = cliente_id
-                    # Chamada ao gateway (não salva no banco ainda)
+                    # Chamada ao gateway (venda.desconto já está preenchido no objeto)
                     fiscal_data = self._executar_emissao_fiscal_venda(venda)
                     
                     # Se não deu erro, preenche os dados fiscais na venda
@@ -281,11 +285,6 @@ class VendaViewSet(viewsets.ModelViewSet):
                     venda.nf_mensagem = fiscal_data.get('mensagem_sefaz')
                     venda.nf_emitida = True
                 
-                # SUCESSO TOTAL: Agora sim finalizamos a venda
-                venda.status = 'FINALIZADA'
-                venda.desconto = desconto
-                if cliente_id:
-                    venda.cliente_id = cliente_id
                 venda.save()
 
         except Exception as e:
@@ -512,7 +511,7 @@ class VendaViewSet(viewsets.ModelViewSet):
             venda.nf_emitida = True
             venda.save()
             
-            return Response(data)
+            return Response(VendaReadSerializer(venda).data)
         except ValueError as e:
             return Response({'erro': str(e)}, status=400)
 
