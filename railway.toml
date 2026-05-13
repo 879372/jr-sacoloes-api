@@ -1,0 +1,13 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+numReplicas = 1
+healthCheckPath = "/api/health/" # Ajuste se sua rota de saúde for outra
+healthCheckTimeout = 100
+
+[[deploy.regions]]
+region = "us-east"
+cpuLimit = 1000
+memoryLimit = 1024
