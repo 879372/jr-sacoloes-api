@@ -33,22 +33,20 @@ def run_backup():
     print(f"[{datetime.now()}] Iniciando backup...")
 
     try:
-        # Tenta usar pg_dump direto (Railway/Linux)
-        print("Tentando pg_dump direto...")
+        # Tenta usar pg_dump direto (Railway/Linux) com formato Custom (-Fc)
+        print("Executando pg_dump (formato Custom)...")
         try:
-            with open(FILE_PATH, "wb") as f:
-                ps = subprocess.Popen(["pg_dump", DATABASE_URL], stdout=subprocess.PIPE)
-                subprocess.check_call(["gzip"], stdin=ps.stdout, stdout=f)
-                ps.wait()
+            # -Fc: Binário e Compactado / --no-acl --no-owner: Evita erros de permissão
+            dump_cmd = ["pg_dump", "-Fc", "--no-acl", "--no-owner", DATABASE_URL, "-f", FILE_PATH]
+            subprocess.check_call(dump_cmd, timeout=600)
         except FileNotFoundError:
             # Se não achar pg_dump, tenta via Docker (Mac Local)
             print("pg_dump não encontrado. Tentando via Docker...")
+            dump_cmd = ["docker", "run", "--rm", "postgres:15", "pg_dump", "-Fc", "--no-acl", "--no-owner", DATABASE_URL]
             with open(FILE_PATH, "wb") as f:
-                dump_cmd = ["docker", "run", "--rm", "postgres:15", "pg_dump", DATABASE_URL]
-                ps = subprocess.Popen(dump_cmd, stdout=subprocess.PIPE)
-                subprocess.check_call(["gzip"], stdin=ps.stdout, stdout=f)
-                if ps.wait() != 0:
-                    raise Exception("Erro ao executar pg_dump via Docker. Verifique se o Docker Desktop está aberto.")
+                subprocess.check_call(dump_cmd, stdout=f, timeout=600)
+        except subprocess.TimeoutExpired:
+            raise Exception("O backup demorou demais (mais de 10 min) e foi cancelado automaticamente.")
 
         # Verifica se o arquivo tem conteúdo
         file_size = os.path.getsize(FILE_PATH)
