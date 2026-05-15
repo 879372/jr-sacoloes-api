@@ -1,5 +1,6 @@
-# Railway Deploy Trigger: 2026-04-27 14:44
+# Railway Deploy Trigger: 2026-05-14
 from .base import *
+from decouple import config as env_config
 
 # PRODUCTION SPECIFIC SETTINGS
 
@@ -17,25 +18,24 @@ CORS_ALLOWED_ORIGINS = [
 # Static Files (WhiteNoise)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# Usando o armazenamento mais simples e robusto para evitar erros de build
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 WHITENOISE_MANIFEST_STRICT = False
 
-# CSRF & Security (Consistent with Dispatcher project)
+# CSRF & Security
 CSRF_TRUSTED_ORIGINS = [
     'https://jr-sacoloes-front-production.up.railway.app',
     'https://jr-sacoloes-api-production.up.railway.app'
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Security headers (Guide #5)
+# Security headers
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool) # usually True behind LB
+SECURE_SSL_REDIRECT = env_config('SECURE_SSL_REDIRECT', default=False, cast=bool)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
@@ -52,6 +52,56 @@ REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
 
 # Optimized DB Connections
 DATABASES['default']['CONN_MAX_AGE'] = 60
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True  # Verifica conexão antes de reusar
 DATABASES['default']['OPTIONS'] = {
     'connect_timeout': 10,
+}
+
+# Cache: Redis se disponível, senão LocMem
+_redis_url = env_config('REDIS_URL', default=None)
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": _redis_url,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "IGNORE_EXCEPTIONS": True,  # API continua mesmo se Redis cair
+            }
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+
+# Logging estruturado (visível no painel Railway)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "apps": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
 }
