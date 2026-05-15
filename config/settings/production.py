@@ -10,9 +10,18 @@ ALLOWED_HOSTS = ['*']  # Permitir domínios do Railway
 # WhiteNoise for Static Files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
-CORS_ALLOWED_ORIGINS = [
-    'https://jr-sacoloes-front-production.up.railway.app',
-    'http://localhost:5173',
+CORS_ALLOW_ALL_ORIGINS = True  # ERP interno — Railway gerencia o acesso externo
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
 ]
 
 # Static Files (WhiteNoise)
