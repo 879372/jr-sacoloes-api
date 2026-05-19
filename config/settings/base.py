@@ -125,9 +125,17 @@ SIMPLE_JWT = {
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = config(
+def _parse_origins(raw_str):
+    if not raw_str:
+        return []
+    cleaned = raw_str.strip()
+    if cleaned.startswith('[') and cleaned.endswith(']'):
+        cleaned = cleaned[1:-1]
+    return [item.strip().strip('"').strip("'").strip() for item in cleaned.split(',') if item.strip()]
+
+CORS_ALLOWED_ORIGINS = _parse_origins(config(
     'CORS_ALLOWED_ORIGINS',
     default='http://localhost:5173,http://localhost:3000'
-).split(',')
+))
 CORS_ALLOW_CREDENTIALS = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

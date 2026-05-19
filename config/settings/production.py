@@ -7,13 +7,21 @@ from decouple import config as env_config
 DEBUG = False
 ALLOWED_HOSTS = ['*']  # Permitir domínios do Railway
 
+def parse_origins(raw_str):
+    if not raw_str:
+        return []
+    cleaned = raw_str.strip()
+    if cleaned.startswith('[') and cleaned.endswith(']'):
+        cleaned = cleaned[1:-1]
+    return [item.strip().strip('"').strip("'").strip() for item in cleaned.split(',') if item.strip()]
+
 # WhiteNoise for Static Files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 # CORS
 cors_origins_env = env_config('CORS_ALLOWED_ORIGINS', default='')
 if cors_origins_env:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+    CORS_ALLOWED_ORIGINS = parse_origins(cors_origins_env)
 else:
     CORS_ALLOWED_ORIGINS = [
         'https://jr-sacoloes-front-production.up.railway.app',
@@ -29,7 +37,7 @@ WHITENOISE_MANIFEST_STRICT = False
 # CSRF & Security
 csrf_origins_env = env_config('CSRF_TRUSTED_ORIGINS', default='')
 if csrf_origins_env:
-    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()]
+    CSRF_TRUSTED_ORIGINS = parse_origins(csrf_origins_env)
 else:
     CSRF_TRUSTED_ORIGINS = [
         'https://jr-sacoloes-front-production.up.railway.app',
