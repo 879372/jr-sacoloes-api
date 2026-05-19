@@ -10,10 +10,15 @@ ALLOWED_HOSTS = ['*']  # Permitir domínios do Railway
 # WhiteNoise for Static Files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
-CORS_ALLOWED_ORIGINS = [
-    'https://jr-sacoloes-front-production.up.railway.app',
-    'http://localhost:5173',
-]
+# CORS
+cors_origins_env = env_config('CORS_ALLOWED_ORIGINS', default='')
+if cors_origins_env:
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        'https://jr-sacoloes-front-production.up.railway.app',
+        'http://localhost:5173',
+    ]
 
 # Static Files (WhiteNoise)
 STATIC_URL = '/static/'
@@ -22,10 +27,14 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 WHITENOISE_MANIFEST_STRICT = False
 
 # CSRF & Security
-CSRF_TRUSTED_ORIGINS = [
-    'https://jr-sacoloes-front-production.up.railway.app',
-    'https://jr-sacoloes-api-production.up.railway.app'
-]
+csrf_origins_env = env_config('CSRF_TRUSTED_ORIGINS', default='')
+if csrf_origins_env:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://jr-sacoloes-front-production.up.railway.app',
+        'https://jr-sacoloes-api-production.up.railway.app'
+    ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Security headers
