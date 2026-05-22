@@ -38,13 +38,21 @@ def run_backup():
         try:
             # -Fc: Binário e Compactado / --no-acl --no-owner: Evita erros de permissão
             dump_cmd = ["pg_dump", "-Fc", "--no-acl", "--no-owner", DATABASE_URL, "-f", FILE_PATH]
-            subprocess.check_call(dump_cmd, timeout=600)
-        except FileNotFoundError:
-            # Se não achar pg_dump, tenta via Docker (Mac Local)
-            print("pg_dump não encontrado. Tentando via Docker...")
-            dump_cmd = ["docker", "run", "--rm", "postgres:15", "pg_dump", "-Fc", "--no-acl", "--no-owner", DATABASE_URL]
-            with open(FILE_PATH, "wb") as f:
-                subprocess.check_call(dump_cmd, stdout=f, timeout=600)
+            subprocess.run(dump_cmd, capture_output=True, text=True, timeout=600, check=True)
+        except (FileNotFoundError, subprocess.CalledProcessError) as e:
+            if isinstance(e, subprocess.CalledProcessError):
+                print(f"pg_dump direto falhou com status {e.returncode}. Stderr: {e.stderr}")
+            else:
+                print("pg_dump direto não encontrado.")
+            
+            # Se falhar ou não achar pg_dump, tenta via Docker (Mac Local) usando postgres:18
+            print("Tentando via Docker com postgres:18...")
+            dump_cmd = ["docker", "run", "--rm", "postgres:18", "pg_dump", "-Fc", "--no-acl", "--no-owner", DATABASE_URL]
+            try:
+                with open(FILE_PATH, "wb") as f:
+                    subprocess.check_call(dump_cmd, stdout=f, timeout=600)
+            except Exception as docker_err:
+                raise Exception(f"Erro tanto no pg_dump nativo quanto via Docker. Detalhes Docker: {docker_err}")
         except subprocess.TimeoutExpired:
             raise Exception("O backup demorou demais (mais de 10 min) e foi cancelado automaticamente.")
 
