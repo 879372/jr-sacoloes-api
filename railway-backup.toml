@@ -10,5 +10,5 @@ restartPolicyMaxRetries = 5
 
 [[deploy.regions]]
 region = "us-east"
-cpuLimit = 1000
-memoryLimit = 1024
+cpuLimit = 250
+memoryLimit = 256
