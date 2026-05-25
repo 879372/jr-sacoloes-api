@@ -133,6 +133,39 @@ class VendaViewSet(viewsets.ModelViewSet):
             return VendaReadSerializer
         return VendaSerializer
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response = self.get_paginated_response(serializer.data)
+            fiscal_param = request.query_params.get('fiscal')
+            if fiscal_param and fiscal_param.lower() == 'true':
+                from django.db.models import Sum
+                agg = queryset.filter(nf_status__iexact='AUTORIZADA').aggregate(
+                    total_valor=Sum('total'),
+                    total_quantidade=models.Count('id')
+                )
+                response.data['total_fiscal_valor'] = agg['total_valor'] or 0.0
+                response.data['total_fiscal_quantidade'] = agg['total_quantidade'] or 0
+            return response
+
+        serializer = self.get_serializer(queryset, many=True)
+        fiscal_param = request.query_params.get('fiscal')
+        if fiscal_param and fiscal_param.lower() == 'true':
+            from django.db.models import Sum
+            agg = queryset.filter(nf_status__iexact='AUTORIZADA').aggregate(
+                total_valor=Sum('total'),
+                total_quantidade=models.Count('id')
+            )
+            return Response({
+                'results': serializer.data,
+                'total_fiscal_valor': agg['total_valor'] or 0.0,
+                'total_fiscal_quantidade': agg['total_quantidade'] or 0
+            })
+        return Response(serializer.data)
+
     def get_queryset(self):
         queryset = super().get_queryset()
         sessao = self.request.query_params.get('sessao')
