@@ -1,4 +1,6 @@
 from rest_framework import viewsets, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import ContaPagar, ContaReceber, CategoriaFinanceira
 from .serializers import (
     ContaPagarSerializer, 
@@ -50,8 +52,26 @@ class ContaPagarViewSet(viewsets.ModelViewSet):
                         status='PENDENTE',
                         recorrente=True,
                         data_fim_recorrencia=conta.data_fim_recorrencia,
-                        parcela_atual=parcela
+                        parcela_atual=parcela,
+                        conta=conta.conta,
                     )
+
+    @action(detail=True, methods=['post'])
+    def transferir_conta(self, request, pk=None):
+        """Transfere TODOS os lançamentos com a mesma descrição para outra conta (EMPRESA/PESSOAL)."""
+        nova_conta = request.data.get('conta')
+        if nova_conta not in ('EMPRESA', 'PESSOAL'):
+            return Response({'erro': 'Conta inválida. Use EMPRESA ou PESSOAL.'}, status=400)
+
+        item = self.get_object()
+        # Busca pela raiz do nome (sem sufixo de parcela como " (2)", " (3)", ...)
+        descricao_base = item.descricao.split(' (')[0]
+
+        atualizado = ContaPagar.objects.filter(
+            descricao__startswith=descricao_base
+        ).update(conta=nova_conta)
+
+        return Response({'atualizado': atualizado, 'conta': nova_conta})
 
 
 class ContaReceberViewSet(viewsets.ModelViewSet):
@@ -86,5 +106,23 @@ class ContaReceberViewSet(viewsets.ModelViewSet):
                         status='PENDENTE',
                         recorrente=True,
                         data_fim_recorrencia=conta.data_fim_recorrencia,
-                        parcela_atual=parcela
+                        parcela_atual=parcela,
+                        conta=conta.conta,
                     )
+
+    @action(detail=True, methods=['post'])
+    def transferir_conta(self, request, pk=None):
+        """Transfere TODOS os lançamentos com a mesma descrição para outra conta (EMPRESA/PESSOAL)."""
+        nova_conta = request.data.get('conta')
+        if nova_conta not in ('EMPRESA', 'PESSOAL'):
+            return Response({'erro': 'Conta inválida. Use EMPRESA ou PESSOAL.'}, status=400)
+
+        item = self.get_object()
+        descricao_base = item.descricao.split(' (')[0]
+
+        atualizado = ContaReceber.objects.filter(
+            descricao__startswith=descricao_base
+        ).update(conta=nova_conta)
+
+        return Response({'atualizado': atualizado, 'conta': nova_conta})
+

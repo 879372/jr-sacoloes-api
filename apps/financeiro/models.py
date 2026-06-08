@@ -17,6 +17,7 @@ class CategoriaFinanceira(BaseModel):
 
 
 class ContaPagar(BaseModel):
+    CONTA_CHOICES = [('EMPRESA', 'Empresa'), ('PESSOAL', 'Pessoal')]
     STATUS_CHOICES = [('PENDENTE', 'Pendente'), ('PAGO', 'Pago'), ('VENCIDO', 'Vencido')]
     descricao = models.CharField(max_length=255)
     fornecedor = models.CharField(max_length=255, blank=True)
@@ -26,6 +27,7 @@ class ContaPagar(BaseModel):
     data_pagamento = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     observacoes = models.TextField(blank=True)
+    conta = models.CharField(max_length=10, choices=CONTA_CHOICES, default='EMPRESA')
     
     # Recorrência
     recorrente = models.BooleanField(default=False)
@@ -44,6 +46,7 @@ class ContaPagar(BaseModel):
 
 
 class ContaReceber(BaseModel):
+    CONTA_CHOICES = [('EMPRESA', 'Empresa'), ('PESSOAL', 'Pessoal')]
     STATUS_CHOICES = [('PENDENTE', 'Pendente'), ('RECEBIDO', 'Recebido'), ('VENCIDO', 'Vencido')]
     descricao = models.CharField(max_length=255)
     cliente_nome = models.CharField(max_length=255, blank=True)
@@ -53,6 +56,7 @@ class ContaReceber(BaseModel):
     data_recebimento = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     observacoes = models.TextField(blank=True)
+    conta = models.CharField(max_length=10, choices=CONTA_CHOICES, default='EMPRESA')
 
     # Recorrência
     recorrente = models.BooleanField(default=False)
