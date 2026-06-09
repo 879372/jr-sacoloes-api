@@ -192,6 +192,10 @@ class VendaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(nf_tipo=nf_tipo.lower())
         if fiscal and fiscal.lower() == 'true':
             queryset = queryset.filter(nf_status__isnull=False)
+            
+        nf_status = self.request.query_params.get('nf_status')
+        if nf_status:
+            queryset = queryset.filter(nf_status__iexact=nf_status)
         
         return queryset.order_by('-data')
 
@@ -547,6 +551,37 @@ class VendaViewSet(viewsets.ModelViewSet):
             return Response(VendaReadSerializer(venda).data)
         except ValueError as e:
             return Response({'erro': str(e)}, status=400)
+
+    @action(detail=True, methods=['get'], url_path='download-xml')
+    def download_xml(self, request, pk=None):
+        venda = self.get_object()
+        
+        if not venda.nf_id_fiscal:
+            return Response({'erro': 'Venda não possui uma nota fiscal registrada na API Fiscal.'}, status=400)
+            
+        fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/notas/{venda.nf_id_fiscal}/xml/"
+        fiscal_key = config('FISCAL_API_KEY')
+        
+        try:
+            resp = requests.get(
+                fiscal_url,
+                headers={'X-Api-Key': fiscal_key},
+                timeout=30
+            )
+            
+            if resp.status_code == 200:
+                from django.http import HttpResponse
+                response = HttpResponse(resp.content, content_type="application/xml")
+                response["Content-Disposition"] = f'attachment; filename="nota_{venda.nf_chave or venda.nf_numero or venda.id}.xml"'
+                return response
+            else:
+                try:
+                    err_msg = resp.json().get('detail') or resp.json().get('erro')
+                except:
+                    err_msg = f"Erro ao baixar XML (Status {resp.status_code})"
+                return Response({'erro': err_msg}, status=400)
+        except Exception as e:
+            return Response({'erro': f'Falha ao conectar com gateway fiscal: {str(e)}'}, status=500)
 
 class VendaItemViewSet(viewsets.ModelViewSet):
     queryset = VendaItem.objects.all().select_related('produto')
