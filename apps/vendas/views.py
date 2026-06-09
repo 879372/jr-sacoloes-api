@@ -572,7 +572,7 @@ class VendaViewSet(viewsets.ModelViewSet):
             if resp.status_code == 200:
                 from django.http import HttpResponse
                 response = HttpResponse(resp.content, content_type="application/xml")
-                response["Content-Disposition"] = f'attachment; filename="nota_{venda.nf_chave or venda.nf_numero or venda.id}.xml"'
+                response["Content-Disposition"] = f'attachment; filename="{venda.nf_chave or venda.nf_numero or venda.id}.xml"'
                 return response
             else:
                 try:
