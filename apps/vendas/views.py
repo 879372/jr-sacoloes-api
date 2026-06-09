@@ -583,6 +583,44 @@ class VendaViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'erro': f'Falha ao conectar com gateway fiscal: {str(e)}'}, status=500)
 
+    @action(detail=False, methods=['get'], url_path='exportar-xml-zip')
+    def exportar_xml_zip(self, request):
+        fiscal_url = f"{config('FISCAL_API_URL').rstrip('/')}/notas/exportar-zip/"
+        fiscal_key = config('FISCAL_API_KEY')
+        
+        params = {}
+        nf_tipo = request.query_params.get('nf_tipo')
+        nf_status = request.query_params.get('nf_status')
+        data_inicio = request.query_params.get('data_inicio')
+        data_fim = request.query_params.get('data_fim')
+        
+        if nf_tipo: params['tipo'] = nf_tipo
+        if nf_status: params['status'] = nf_status
+        if data_inicio: params['data_inicio'] = data_inicio
+        if data_fim: params['data_fim'] = data_fim
+        
+        try:
+            resp = requests.get(
+                fiscal_url,
+                params=params,
+                headers={'X-Api-Key': fiscal_key},
+                timeout=60
+            )
+            
+            if resp.status_code == 200:
+                from django.http import HttpResponse
+                response = HttpResponse(resp.content, content_type="application/zip")
+                response["Content-Disposition"] = 'attachment; filename="xml_exportados.zip"'
+                return response
+            else:
+                try:
+                    err_msg = resp.json().get('detail') or resp.json().get('erro')
+                except:
+                    err_msg = f"Erro ao baixar ZIP (Status {resp.status_code})"
+                return Response({'erro': err_msg}, status=400)
+        except Exception as e:
+            return Response({'erro': f'Falha ao conectar com gateway fiscal: {str(e)}'}, status=500)
+
 class VendaItemViewSet(viewsets.ModelViewSet):
     queryset = VendaItem.objects.all().select_related('produto')
     serializer_class = VendaItemSerializer
