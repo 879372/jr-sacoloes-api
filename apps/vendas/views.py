@@ -604,7 +604,7 @@ class VendaViewSet(viewsets.ModelViewSet):
                 fiscal_url,
                 params=params,
                 headers={'X-Api-Key': fiscal_key},
-                timeout=60
+                timeout=300
             )
             
             if resp.status_code == 200:
