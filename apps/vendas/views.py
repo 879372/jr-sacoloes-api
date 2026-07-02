@@ -200,6 +200,35 @@ class VendaViewSet(viewsets.ModelViewSet):
         return queryset.order_by('-data')
 
     @extend_schema(
+        summary="Salvar venda como orçamento",
+        description="Marca a venda atual como ORCAMENTO sem baixar estoque e sem exigir pagamentos.",
+        responses={200: VendaReadSerializer}
+    )
+    @action(detail=True, methods=['post'], url_path='salvar-orcamento')
+    def salvar_orcamento(self, request, pk=None):
+        venda = self.get_object()
+
+        if venda.status != 'EM_ABERTO':
+            return Response({'erro': 'Apenas vendas em aberto podem ser salvas como orçamento.'}, status=400)
+
+        cliente_id = request.data.get('cliente')
+        
+        from decimal import Decimal, ROUND_HALF_UP
+        def quantize(val):
+            return Decimal(str(val)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+        desconto = quantize(request.data.get('desconto', 0))
+
+        venda.status = 'ORCAMENTO'
+        venda.desconto = desconto
+        if cliente_id:
+            venda.cliente_id = cliente_id
+            
+        venda.save()
+
+        return Response(VendaReadSerializer(venda).data)
+
+    @extend_schema(
         summary="Finalizar uma venda",
         description="Fecha a venda, registra os pagamentos, baixa o estoque e opcionalmente emite nota fiscal.",
         request=VendaFinalizarSerializer,

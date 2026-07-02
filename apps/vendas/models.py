@@ -29,6 +29,7 @@ class Venda(BaseModel):
         ('EM_ABERTO', 'Em Aberto'),
         ('FINALIZADA', 'Finalizada'),
         ('CANCELADA', 'Cancelada'),
+        ('ORCAMENTO', 'Orçamento'),
     ]
     sessao = models.ForeignKey(SessaoCaixa, on_delete=models.PROTECT)
     cliente = models.ForeignKey(Cliente, null=True, blank=True, on_delete=models.SET_NULL)
